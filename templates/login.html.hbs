@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html data-theme="{{theme}}"  lang="{{#if lang}}{{lang}}{{else}}en{{/if}}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Server w/ Rocket | Login</title>
+        <link rel="preload" href="/assets/globals.css" as="style">
+        <link rel="preload" href="/assets/htmx.min.js" as="script">
+        <link rel="stylesheet" href="/assets/globals.css">
+        <link rel="stylesheet" href="/assets/login.css">
+        <script src="/assets/htmx.min.js"></script>
+        <script defer>
+            document.addEventListener("htmx:responseError", (ev) => {
+                const { detail } = ev;
+
+                alert(detail.xhr.responseText || "An error occurred");
+            });
+        </script>
+    </head>
+    <body>
+        <main class="container min-h-screen login_main">
+            <div class="card login_card">
+                <h1>Chat server</h1>
+                <p>Welcome back!</p>
+                <form hx-swap="none" hx-post="/session/login">
+                    <div class="input-group">
+                        <label for="username">Username</label>
+                        <input required type="text" id="username" name="display_name" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input required type="password" id="password" name="password" required>
+                    </div>
+                    <button class="primary" type="submit">Login</button>
+                </form>
+            </div>
+        </main>
+    </body>
+</html>

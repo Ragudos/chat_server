@@ -1,0 +1,22 @@
+.login_main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@supports (aspect-ratio: 4/3) {
+    .login_card {
+        aspect-ratio: 4/3;
+    }
+}
+
+@supports not (aspect-ratio: 4/3) {
+    .login_card {
+        min-width: 16ch;
+        min-height: 12ch;
+    }
+}
+
+.login_card form {
+    margin-top: 1rem;
+}

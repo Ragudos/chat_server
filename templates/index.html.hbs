@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html data-theme="{{theme}}" lang="{{#if lang}}{{lang}}{{else}}en{{/if}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Server w/ Rocket</title>
+    <link rel="preload" href="/assets/globals.css" as="style">
+    <link rel="preload" href="/assets/htmx.min.js" as="script">
+    <link rel="stylesheet" href="/assets/globals.css">
+    <script src="/assets/htmx.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Chat Server w/ Rocket</h1>
+        <nav>
+            {{#if user}}
+                <a href="/session">Logout</a>
+            {{else}}
+                <a href="/session/login">Login</a>
+            {{/if}}
+        </nav>
+    </header>
+</body>
+</html>
