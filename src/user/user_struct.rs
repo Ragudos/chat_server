@@ -36,6 +36,14 @@ impl<'r> FromRequest<'r> for User {
 }
 
 impl User {
+    pub fn new(id: i32, display_name: String, display_image: String) -> User {
+        User {
+            id,
+            display_name,
+            display_image
+        }
+    }
+
     pub async fn get_by_display_name(db: &mut Connection<Db>, display_name: &str) -> Option<User> {
         let record = sqlx::query!(
             "SELECT * FROM users WHERE display_name = $1", display_name
@@ -73,4 +81,30 @@ impl User {
             None => None
         }
     }
+
+    pub async fn create_user(db: &mut Connection<Db>, display_name: &str, display_image: &str, hashed_password: &String) -> Result<User, sqlx::Error> {
+        let user_record = sqlx::query!(
+            "INSERT INTO users (display_name, display_image) VALUES ($1, $2) RETURNING *", display_name, display_image
+
+        )
+        .fetch_one(&mut ***db).await;
+    
+        match user_record {
+            Ok(user_record) => {
+                let user = User::new(user_record.id, user_record.display_name, user_record.display_image);
+
+                let user_credentials_record = sqlx::query!(
+                    "INSERT INTO user_credentials (user_id, password) VALUES ($1, $2) RETURNING *", user.id, hashed_password
+                )
+                .fetch_one(&mut ***db).await;
+
+                match user_credentials_record {
+                    Ok(_) => Ok(user),
+                    Err(err) => Err(err)
+                }
+            },
+            Err(err) => Err(err)
+        }
+    }
 }
+

@@ -1,0 +1,72 @@
+.sign-in-main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.sign-in-card {
+    width: min(98%, 20rem);
+}
+
+@supports (aspect-ratio: 14/9) {
+    .sign-in-card {
+        aspect-ratio: 14/9;
+    }
+}
+
+@supports not (aspect-ratio: 14/9) {
+    .sign-in-card {
+        min-height: 12rem;
+    }
+}
+
+.sign-in-card form {
+    margin-block: 1rem;
+}
+
+.sign-in-dp-upload {
+    padding: 1rem;
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-style: dashed;
+    border-width: 2px;
+    border-color: hsl(var(--border));
+}
+
+.sign-in-dp-upload:focus-within {
+    outline: 2px solid hsl(var(--foreground));
+    outline-offset: 2px;
+}
+
+.sign-in-dp-upload:hover {
+    background-color: hsl(var(--foreground) / 0.175);
+}
+
+@supports (aspect-ratio: 15/9) {
+    .sign-in-dp-upload::before {
+        aspect-ratio: 5/3;
+    }
+}
+
+@supports not (aspect-ratio: 15/9) {
+    .sign-in-dp-upload::before {
+        min-height: 8rem;
+    }
+}
+
+.sign-in-dp-upload input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+}
+
+.sign-in-dp-upload div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.175rem;
+}
