@@ -1,0 +1,8 @@
+- CSRF Mitigations
+- Logout endpoint
+- Make sure user can only login on one instance/browser
+- Chats
+- Better UI
+- Friends mechanism
+- Update metadata, add bio
+- Ability to send images in chats

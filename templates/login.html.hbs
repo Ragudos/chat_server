@@ -7,22 +7,31 @@
         <link rel="preload" href="/assets/globals.css" as="style">
         <link rel="preload" href="/assets/htmx.min.js" as="script">
         <link rel="stylesheet" href="/assets/globals.css">
-        <link rel="stylesheet" href="/assets/login.css">
+        <link rel="stylesheet" href="/assets/sign_in.css">
         <script src="/assets/htmx.min.js"></script>
-        <script defer>
+<<<<<<< HEAD
+        <script>
             document.addEventListener("htmx:responseError", (ev) => {
                 const { detail } = ev;
 
                 alert(detail.xhr.responseText || "An error occurred");
             });
         </script>
+=======
+        <script src="/assets/htmx-loading.min.js"></script>
+        <script src="/assets/universal.js"></script>
+>>>>>>> 9369702 (cleaned up modules)
     </head>
-    <body>
-        <main class="container min-h-screen login_main">
-            <div class="card login_card">
+    <body hx-boost="true">
+        <main class="container min-h-screen sign-in-main">
+            <div class="card sign-in-card">
                 <h1>Chat server</h1>
                 <p>Welcome back!</p>
+<<<<<<< HEAD
                 <form hx-swap="none" hx-post="/session/login">
+=======
+                <form hx-swap="none" hx-post="/auth/login" method="post" action="/auth/login">
+>>>>>>> 9369702 (cleaned up modules)
                     <div class="input-group">
                         <label for="username">Username</label>
                         <input required type="text" id="username" name="display_name" required>
@@ -33,7 +42,22 @@
                     </div>
                     <button class="primary" type="submit">Login</button>
                 </form>
+                <small>
+                    Don't have an account? <a style="font-size: inherit" class="link" href="/auth/register">Register</a>
+                </small>
             </div>
         </main>
+<<<<<<< HEAD
+=======
+        <script>
+            document.addEventListener("htmx:responseError", (ev) => {
+                const { detail } = ev;
+    
+                console.log(detail);
+
+                alert(detail.xhr.responseText || "An error occurred");
+            });
+        </script>
+>>>>>>> 9369702 (cleaned up modules)
     </body>
 </html>

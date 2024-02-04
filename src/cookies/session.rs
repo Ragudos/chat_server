@@ -1,4 +1,6 @@
-use cloudinary::upload::{result::UploadResult, Source, Upload, UploadOptions};
+use std::{fs::File, io::Read};
+
+use cloud_storage::Client;
 use rocket::{form::Form, get, http::{ContentType, Cookie, CookieJar, Status}, post, request::FlashMessage, response::{status, Redirect}, routes, Data, FromForm, Route};
 use rocket_dyn_templates::{context, Template};
 
@@ -8,7 +10,7 @@ use bcrypt;
 use rocket_multipart_form_data::{mime, MultipartFormData, MultipartFormDataField, MultipartFormDataOptions, TextField};
 use serde::{Deserialize, Serialize};
 
-use crate::{cookies, user::user_struct::User, db::Db, utils::{self, env}};
+use crate::{consts, cookies, db::Db, user::user_struct::User, utils};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ImageFile {
@@ -92,7 +94,7 @@ async fn post_login<'a>(mut db: Connection<Db>, cookies: &CookieJar<'_>, login_i
 
             match user_credentials {
                 Some(user_credentials) => {
-                    let is_allowed = bcrypt::verify(&login_info.password, &user_credentials.password);
+                    let is_allowed = bcrypt::verify(login_info.password, &user_credentials.password);
 
                     match is_allowed {
                         Ok(true) => {
@@ -102,38 +104,34 @@ async fn post_login<'a>(mut db: Connection<Db>, cookies: &CookieJar<'_>, login_i
                                 Ok(stringified_user) => {
                                     cookies.add_private(Cookie::new("user_info", stringified_user));
 
-                                    return Ok(utils::custom_redirect::Redirect::to(uri!(index)));
+                                    Ok(utils::custom_redirect::Redirect::to(uri!(index)))
                                 },
                                 Err(_) => {
-                                    return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+                                    Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                                 }
                             }
                         },
-                        Ok(false) => Err(status::Custom(Status::Unauthorized, "Invalid credentials")),
-                        Err(err) => {
-                            println!("Failed verifying password. {:?}", err);
-
-                            return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+                        Ok(false) => Err(status::Custom(Status::Unauthorized, consts::ERRORS.invalid_credentials)),
+                        Err(_err) => {
+                            Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                         }
                     }
                 },
                 None => {
-                    println!("Failed getting user credentials.");
+                    println!("User exists in \"users\" table but not in \"user_credentials\" table. Display name: {}", login_info.display_name);
 
-                    return Err(status::Custom(Status::Unauthorized, "Invalid credentials"));
+                    Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                 }
             }
         },
         None => {
-            println!("Failed getting user.");
-
-            return Err(status::Custom(Status::Unauthorized, "Invalid credentials"));
+            Err(status::Custom(Status::Unauthorized, consts::ERRORS.invalid_credentials))
         }
     }
 }
 
 async fn create_user<'a>(db: &mut Connection<Db>, cookies: &CookieJar<'_>, display_name: &str, display_image: &str, password: &str) -> Result<utils::custom_redirect::Redirect, status::Custom<&'a str>> {
-    let hashed_password = bcrypt::hash(&password, bcrypt::DEFAULT_COST);
+    let hashed_password = bcrypt::hash(password, bcrypt::DEFAULT_COST);
 
     match hashed_password {
         Ok(hashed_password) => {
@@ -147,25 +145,20 @@ async fn create_user<'a>(db: &mut Connection<Db>, cookies: &CookieJar<'_>, displ
                         Ok(stringified_user) => {
                             cookies.add_private(Cookie::new("user_info", stringified_user));
 
-                            return Ok(utils::custom_redirect::Redirect::to(uri!(index)));
+                            Ok(utils::custom_redirect::Redirect::to(uri!(index)))
                         },
-                        Err(err) => {
-                            println!("Error deserializing User struct. {:?}", err);
-
-                            return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+                        Err(_err) => {
+                            Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                         }
                     }
                 },
-                Err(err) => {
-                    println!("Error creating user. {:?}", err);
-
-                    return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+                Err(_err) => {
+                    Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                 }
             }
         },
-        Err(err) => {
-            println!("Error hashing password. {:?}", err);
-            return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+        Err(_err) => {
+            Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
         }
     }
 }
@@ -180,33 +173,33 @@ async fn parse_register_info_and_create_user<'a> (
     match display_name {
         Some(display_name) => {
             if display_name.len() > 1 {
-                return Err(status::Custom(Status::NotAcceptable, "Display name must only exist once."));
+                return Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_data));
             }
 
-            if let Some(display_name) = display_name.get(0) {
+            if let Some(display_name) = display_name.first() {
                 match password {
                     Some(password) => {
                         if password.len() > 1 {
-                            return Err(status::Custom(Status::NotAcceptable, "Password must only exist once."));
+                            return Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_data));
                         }
 
-                        if let Some(password) = password.get(0) {
-                            return create_user(db, cookies, display_name.text.as_str(), display_image, &password.text.as_str()).await;
+                        if let Some(password) = password.first() {
+                            create_user(db, cookies, display_name.text.as_str(), display_image, password.text.as_str()).await
                         } else {
-                            return Err(status::Custom(Status::NotAcceptable, "Password must not be empty."));
+                            Err(status::Custom(Status::NotAcceptable, consts::ERRORS.incomplete_data))
                         }
                     },
                     None => {
-                        return Err(status::Custom(Status::NotAcceptable, "Password must not be empty."));
+                        Err(status::Custom(Status::NotAcceptable, consts::ERRORS.incomplete_data))
                     }
                 }
             } else {
-                return Err(status::Custom(Status::NotAcceptable, "Display name must not be empty."));
+                Err(status::Custom(Status::NotAcceptable, consts::ERRORS.incomplete_data))
             }
             
         },
         None => {
-            return Err(status::Custom(Status::NotAcceptable, "Username must not be empty."));
+            Err(status::Custom(Status::NotAcceptable, consts::ERRORS.incomplete_data))
         }
     }
 }
@@ -232,7 +225,7 @@ async fn post_register<'a>(mut db: Connection<Db>, cookies: &CookieJar<'_>, cont
             match display_image {
                 Some(display_image) => {
                     if display_image.len() > 1 {
-                        return Err(status::Custom(Status::NotAcceptable, "Only one image can be uploaded"));
+                        return Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_data));
                     }
 
                     if let Some(display_image) = &display_image.first() {
@@ -240,7 +233,6 @@ async fn post_register<'a>(mut db: Connection<Db>, cookies: &CookieJar<'_>, cont
 
                         match mime_type {
                             Some(mime_type) => {
-                                println!("Mime type: {:?}", mime_type.essence_str());
                                 match mime_type.essence_str() {
                                     "image/jpg" | "image/jpeg" | "image/png" | "image/webp" | "image/avif" => {
                                         let file_name = &display_image.file_name;
@@ -248,59 +240,74 @@ async fn post_register<'a>(mut db: Connection<Db>, cookies: &CookieJar<'_>, cont
 
                                         match file_name {
                                             Some(file_name) => {
-                                                let options = UploadOptions::new().set_public_id(file_name.clone());
-                                                let upload = Upload::new(env::load_cloudinary_api_key(), env::load_cloudinary_cloud_name(), env::load_cloudinary_api_secret());
-                                                let result = upload.image(Source::Path(file_path.into()), &options).await;
+                                                let read_file = File::open(file_path);
 
-                                                match result {
-                                                    Ok(result) => {
-                                                        match result {
-                                                            UploadResult::Success(result) => {
-                                                                let display_image = result.secure_url;
+                                                match read_file {
+                                                    Ok(buf) => {
+                                                        let mut bytes: Vec<u8> = Vec::new();
 
-                                                                return parse_register_info_and_create_user(&mut db, cookies, display_name, password, &display_image).await;
+                                                        for byte in buf.bytes() {
+                                                            match byte {
+                                                                Ok(byte) => {
+                                                                    bytes.push(byte);
+                                                                },
+                                                                Err(err) => {
+                                                                    println!("File byte read err: {:?}. File might be corrupted", err);
+
+                                                                    return Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong));
+                                                                }
                                                             }
-                                                            UploadResult::Error(error) => {
-                                                                println!("Error uploading image. {:?}", error);
+                                                        }
 
-                                                                return Err(status::Custom(Status::InternalServerError, "Something went wrong."));
+                                                        let result = Client::default().object().create("chat_server_local_development", bytes, file_name, mime_type.essence_str()).await;
+
+                                                        match result {
+                                                            Ok(_obj) => {
+                                                                let display_image = format!("https://storage.googleapis.com/chat_server_local_development/{}", file_name);
+
+                                                                parse_register_info_and_create_user(&mut db, cookies, display_name, password, &display_image).await
+                                                            }
+                                                            Err(err) => {
+                                                                println!("Google Cloud err: {:?}", err);
+
+                                                                Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                                                             }
                                                         }
                                                     }
                                                     Err(err) => {
-                                                        println!("Error uploading image. {:?}", err);
+                                                        println!("File read err: {:?}", err);
 
-                                                        return Err(status::Custom(Status::InternalServerError, "Something went wrong."));
+                                                        return Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong));
                                                     }
                                                 }
                                             }
                                             None => {
-                                                return Err(status::Custom(Status::NotAcceptable, "File name must not be empty."));
+                                                Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_file_name))
                                             }
                                         }
                                     }
                                     _ => {
-                                        return Err(status::Custom(Status::NotAcceptable, "Only Png, Jpeg, Webp, and Avif images are allowed."));
+                                        Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_file_mime_type))
                                     }
                                 }
                             }
                             None => {
-                                return Err(status::Custom(Status::NotAcceptable, "Only images are allowed."));
+                                Err(status::Custom(Status::NotAcceptable, consts::ERRORS.invalid_file_mime_type))
                             }
                         }
                     } else {
-                        return Err(status::Custom(Status::InternalServerError, "Something went wrong."));
+                        Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
                     }
                 }
                 None => {
                     let placeholder = "/assets/placeholder/profile_picture.jpg";
 
-                    return parse_register_info_and_create_user(&mut db, cookies, display_name, password, placeholder).await;
+                    parse_register_info_and_create_user(&mut db, cookies, display_name, password, placeholder).await
                 }
             }
         }
         Err(_) => {
-            return Err(status::Custom(Status::BadRequest, "Something went wrong."));
+            Err(status::Custom(Status::InternalServerError, consts::ERRORS.something_went_wrong))
         }
     }
 }

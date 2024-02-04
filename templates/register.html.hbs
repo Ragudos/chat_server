@@ -10,6 +10,11 @@
         <link rel="stylesheet" href="/assets/sign_in.css">
         <script src="/assets/htmx.min.js"></script>
         <script src="/assets/dom.js"></script>
+<<<<<<< HEAD
+=======
+        <script src="/assets/htmx-loading.min.js"></script>
+        <script src="/assets/universal.js"></script>
+>>>>>>> 9369702 (cleaned up modules)
         <style>
             #image_info {
                 display: flex;
@@ -25,14 +30,27 @@
             <div class="card sign-in-card">
                 <h1>Chat server</h1>
                 <p>Create an account</p>
+<<<<<<< HEAD
                 <form hx-swap="none" hx-post="/session/register" hx-encoding="multipart/form-data" enctype="multipart/form-data">
+=======
+                <form hx-swap="none" hx-post="/auth/register" method="post" action="/auth/register" hx-encoding="multipart/form-data" enctype="multipart/form-data">
+>>>>>>> 9369702 (cleaned up modules)
                     <div class="input-group">
                         <label for="username">Username</label>
-                        <input required type="text" id="username" name="display_name" required>
+                        <input required type="text" id="username" name="display_name" required placeholder="johndoe123">
                     </div>
                     <div class="input-group">
                         <label for="password">Password</label>
-                        <input required type="password" id="password" name="password" required>
+                        <input required type="password" id="password" name="password" placeholder="********" minlength="8" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="gender">Gender</label>
+                        <select required name="gender">
+                            <option selected value="" disabled>I identify as</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
                     </div>
                     <div class="input-group" style="margin-top: 1rem;">
                         <div class="sign-in-dp-upload">
@@ -52,7 +70,7 @@
                     <button class="primary" type="submit">Register</button>
                 </form>
                 <small>
-                    Already have an account? <a style="font-size: inherit;" class="link" href="/session/login">Login</a>
+                    Already have an account? <a style="font-size: inherit;" class="link" href="/auth/login">Login</a>
                 </small>
             </div>
         </main>

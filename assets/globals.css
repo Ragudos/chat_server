@@ -149,7 +149,9 @@ button {
     cursor: pointer;
 }
 
-input {
+input,
+select,
+textarea {
     padding: 0.25rem 0.75rem;
 }
 
@@ -204,6 +206,28 @@ input[type=submit].destructive {
     color: hsl(var(--destructive-foreground));
 }
 
+a.icon,
+button.icon,
+input[type=submit].icon {
+    padding: 0.25rem;
+    min-width: 2rem;
+    min-height: 2rem;
+}
+
+a.link,
+button.link,
+input[type=submit].link {
+    background-color: transparent;
+    color: hsl(var(--primary));
+    padding: 0;
+}
+
+a.link:hover,
+button.link:hover,
+input[type=submit].link:hover {
+    opacity: 0.8;
+}
+
 a:hover,
 button:hover,
 input[type=submit]:hover {
@@ -212,7 +236,9 @@ input[type=submit]:hover {
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
 }
@@ -311,7 +337,8 @@ p {
     min-height: 100dvh;
 }
 
-.input-group input {
+.input-group input,
+.input-group select {
     width: 100%;
 }
 
@@ -322,3 +349,27 @@ p {
 form button[type=submit] {
     margin-top: 1rem;
 }
+
+.sr-only {
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden;
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.w-4 {
+    width: 1rem;
+}
+
+.h-4 {
+    height: 1rem;
+}
+
+.profile_picture_sm {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+}
+

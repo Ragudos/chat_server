@@ -1,20 +1,13 @@
-use rocket::{http::CookieJar, FromFormField};
+use rocket::http::CookieJar;
 
-#[derive(FromFormField)]
 pub enum Theme {
-    #[field(value = "light")]
     Light,
-    #[field(value = "dark")]
     Dark,
-    #[field(value = "system")]
     System
 }
 
-#[derive(FromFormField)]
 pub enum Language {
-    #[field(value = "en")]
     English,
-    #[field(value = "ph")]
     Tagalog
 }
 
@@ -24,27 +17,58 @@ pub struct Settings {
     pub language: Language,
 }
 
-impl From<&str> for Theme {
-    fn from(theme: &str) -> Self {
-        match theme {
+impl<'a> Theme {
+    pub fn as_str(&self) -> &'a str {
+        match self {
+            Theme::Light => "light",
+            Theme::Dark => "dark",
+            Theme::System => "system",
+        }
+    }
+
+    pub fn from_str(str: &'a str) -> Theme {
+        match str {
             "light" => Theme::Light,
             "dark" => Theme::Dark,
             "system" => Theme::System,
-            _ => Theme::Light
+            _ => Theme::Light,
         }
     }
 }
 
-pub fn get_default_theme(cookie: &CookieJar<'_>) -> String {
+impl<'a> Language {
+    pub fn as_str(&self) -> &'a str {
+        match self {
+            Language::English => "en",
+            Language::Tagalog => "ph",
+        }
+    }
+
+    pub fn from_str(str: &'a str) -> Language {
+        match str {
+            "en" => Language::English,
+            "ph" => Language::Tagalog,
+            _ => Language::English,
+        }
+    }
+}
+
+pub fn get_default_theme(cookie: &CookieJar<'_>) -> Theme {
     if let Some(theme) = cookie.get("theme") {
         let theme = theme.value_trimmed();
 
-        match theme.into() {
-            Theme::Light => String::from("light"),
-            Theme::Dark => String::from("dark"),
-            Theme::System => String::from("system"),
-        }
+        Theme::from_str(theme)
     } else {
-        String::from("light")
+        Theme::Light
+    }
+}
+
+pub fn get_default_language(cookie: &CookieJar<'_>) -> Language {
+    if let Some(lang) = cookie.get("lang") {
+        let lang = lang.value_trimmed();
+
+        Language::from_str(lang)
+    } else {
+        Language::English
     }
 }

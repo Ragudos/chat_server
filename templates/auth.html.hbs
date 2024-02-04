@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html data-theme="{{theme}}"  lang="{{#if lang}}{{lang}}{{else}}en{{/if}}">
+<<<<<<< HEAD
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Server w/ Rocket | Session</title>
+    <link rel="preload" href="/assets/globals.css" as="style">
+    <link rel="preload" href="/assets/htmx.min.js" as="script">
+    <link rel="stylesheet" href="/assets/globals.css">
+    <script src="/assets/htmx.min.js"></script>
+<<<<<<< HEAD:templates/session.html.hbs
+</head>
+<body>
+    <h1>You are currently logged in</h1>
+=======
+    <script src="/assets/htmx-loading.min.js"></script>
+    <script src="/assets/universal.js"></script>
+    <style>
+        .session__card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body hx-ext="loading-states">
+    <main class="container min-h-screen center-child">
+        <div class="card session__card">
+            <h1>Welcome, {{user.display_name}}!</h1>
+            <a href="/chats">
+                <small>Chat &amp; Socialize</small>
+            </a>
+        </div>
+    </main>
+>>>>>>> 9369702 (cleaned up modules):templates/auth.html.hbs
+</body>
+=======
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome, {{user.display_name}}</title>
+        <link rel="preload" href="/assets/globals.css" as="style">
+        <link rel="preload" href="/assets/htmx.min.js" as="script">
+        <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
+        <link rel="stylesheet" href="/assets/globals.css">
+        <script src="/assets/htmx.min.js"></script>
+        <script src="/assets/htmx-loading.min.js"></script>
+        <script src="/assets/universal.js"></script>
+        <style>
+            .session__card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+            }
+        </style>
+    </head>
+    <body hx-ext="loading-states">
+        <main class="container min-h-screen center-child">
+            <div class="card session__card">
+                <h1>Welcome, {{user.display_name}}!</h1>
+                <a href="/chats">
+                    <small>Chat &amp; Socialize</small>
+                </a>
+            </div>
+        </main>
+    </body>
+>>>>>>> dcd12f0 (added more columns)
+</html>

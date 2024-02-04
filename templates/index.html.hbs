@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html data-theme="{{theme}}" lang="{{#if lang}}{{lang}}{{else}}en{{/if}}">
+<<<<<<< HEAD
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,17 +9,70 @@
     <link rel="preload" href="/assets/htmx.min.js" as="script">
     <link rel="stylesheet" href="/assets/globals.css">
     <script src="/assets/htmx.min.js"></script>
+<<<<<<< HEAD
+=======
+    <script src="/assets/htmx-loading.min.js"></script>
+    <script src="/assets/universal.js"></script>
+>>>>>>> 9369702 (cleaned up modules)
 </head>
 <body>
     <header>
         <h1>Chat Server w/ Rocket</h1>
         <nav>
             {{#if user}}
+<<<<<<< HEAD
                 <a href="/session">Logout</a>
+=======
+                <form hx-delete="/auth/logout" action="/auth/logout">
+                    <button
+                        type="submit"
+                        data-loading-disable
+                        data-loading-aria-busy
+                        data-loading-delay="400"
+                    >
+                        Logout
+                    </button>
+                </form>
+>>>>>>> 9369702 (cleaned up modules)
             {{else}}
-                <a href="/session/login">Login</a>
+                <a href="/auth/login">Login</a>
             {{/if}}
         </nav>
     </header>
 </body>
+=======
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Server w/ Rocket</title>
+        <link rel="preload" href="/assets/globals.css" as="style">
+        <link rel="preload" href="/assets/htmx.min.js" as="script">
+        <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
+        <link rel="stylesheet" href="/assets/globals.css">
+        <script src="/assets/htmx.min.js"></script>
+        <script src="/assets/htmx-loading.min.js"></script>
+        <script src="/assets/universal.js"></script>
+    </head>
+    <body hx-ext="loading-states">
+        <header>
+            <h1>Chat Server w/ Rocket</h1>
+            <nav>
+                {{#if user}}
+                    <form hx-delete="/auth/logout" action="/auth/logout">
+                        <button
+                            type="submit"
+                            data-loading-disable
+                            data-loading-aria-busy
+                            data-loading-delay="400"
+                        >
+                            Logout
+                        </button>
+                    </form>
+                {{else}}
+                    <a href="/auth/login">Login</a>
+                {{/if}}
+            </nav>
+        </header>
+    </body>
+>>>>>>> dcd12f0 (added more columns)
 </html>
