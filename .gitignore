@@ -1,4 +1,4 @@
 /target
 Rocket.toml
 .env
-service_account
+service_account*
