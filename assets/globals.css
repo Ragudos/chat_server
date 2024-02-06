@@ -158,19 +158,23 @@ textarea {
 a,
 button,
 input[type=submit] {
+    --_min-width: 7.5ch;
+    --_min-height: 3.25ch;
+    --_foreground: var(--background);
+
     padding: 0.5rem 1rem;
     
     border-radius: calc(var(--radius) - 0.25em);
     
-    min-width: 7.5ch;
-    min-height: 3.25ch;
+    min-width: var(--_min-width);
+    min-height: var(--_min-height);
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
     background-color: hsl(var(--foreground) / var(--_bg-opacity, 1));
-    color: hsl(var(--background));
+    color: hsl(var(--_foreground));
 
     transition: background-color 0.2s ease;
     will-change: background-color;
@@ -182,28 +186,28 @@ a.primary,
 button.primary,
 input[type=submit].primary {
     background-color: hsl(var(--primary) / var(--_bg-opacity, 1));
-    color: hsl(var(--primary-foreground));
+    --_foreground: var(--primary-foreground);
 }
 
 a.secondary,
 button.secondary,
 input[type=submit].secondary {
     background-color: hsl(var(--secondary) / var(--_bg-opacity, 1));
-    color: hsl(var(--secondary-foreground));
+    --_foreground: var(--secondary-foreground);
 }
 
 a.accent,
 button.accent,
 input[type=submit].accent {
     background-color: hsl(var(--accent) / var(--_bg-opacity, 1));
-    color: hsl(var(--accent-foreground));
+    --_foreground: var(--accent-foreground);
 }
 
 a.destructive,
 button.destructive,
 input[type=submit].destructive {
     background-color: hsl(var(--destructive) / var(--_bg-opacity, 1));
-    color: hsl(var(--destructive-foreground));
+    --_foreground: var(--destructive-foreground);
 }
 
 a.icon,
@@ -218,7 +222,7 @@ a.link,
 button.link,
 input[type=submit].link {
     background-color: transparent;
-    color: hsl(var(--primary));
+    --_foreground: var(--primary);
     padding: 0;
 }
 
@@ -371,5 +375,27 @@ form button[type=submit] {
     width: 1.75rem;
     height: 1.75rem;
     border-radius: 50%;
+}
+
+.center-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-loading], [hidden] {
+    display: none;
+}
+
+[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    --_bg-opacity: 0.5 !important;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 

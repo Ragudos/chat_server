@@ -1,31 +1,9 @@
 #[macro_use] extern crate rocket;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-use chat_server::{cookies::{self, session}, db};
-use rocket::{fs::{FileServer, relative}, http::CookieJar};
-use rocket_dyn_templates::{context, Template};
-
-#[get("/")]
-fn homepage(cookies: &CookieJar<'_>) -> Template {
-    let theme = cookies::settings::get_default_theme(cookies);
-
-    Template::render("index", context! {
-        lang: "en",
-        theme
-    })
-}
-=======
-use chat_server::{db, pages::{auth, homepage}};
-use rocket::fs::{FileServer, relative};
-use rocket_dyn_templates::Template;
->>>>>>> 9369702 (cleaned up modules)
-=======
 use chat_server::{catchers, db, pages::{auth, homepage}};
 use rocket::fs::{FileServer, relative};
 use rocket_dyn_templates::Template;
 use rocket_csrf_token::{CsrfConfig, Fairing};
->>>>>>> dcd12f0 (added more columns)
 
 #[launch]
 fn rocket() -> _ {

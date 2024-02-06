@@ -6,15 +6,14 @@
         <title>Chat Server w/ Rocket | Register</title>
         <link rel="preload" href="/assets/globals.css" as="style">
         <link rel="preload" href="/assets/htmx.min.js" as="script">
+        <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
         <link rel="stylesheet" href="/assets/globals.css">
         <link rel="stylesheet" href="/assets/sign_in.css">
+        <link rel="stylesheet" href="/assets/loading.css">
         <script src="/assets/htmx.min.js"></script>
         <script src="/assets/dom.js"></script>
-<<<<<<< HEAD
-=======
         <script src="/assets/htmx-loading.min.js"></script>
         <script src="/assets/universal.js"></script>
->>>>>>> 9369702 (cleaned up modules)
         <style>
             #image_info {
                 display: flex;
@@ -25,16 +24,12 @@
             }
         </style>
     </head>
-    <body hx-boost="true">
+    <body hx-ext="loading-states">
         <main class="container min-h-screen sign-in-main">
             <div class="card sign-in-card">
                 <h1>Chat server</h1>
                 <p>Create an account</p>
-<<<<<<< HEAD
-                <form hx-swap="none" hx-post="/session/register" hx-encoding="multipart/form-data" enctype="multipart/form-data">
-=======
                 <form hx-swap="none" hx-post="/auth/register" method="post" action="/auth/register" hx-encoding="multipart/form-data" enctype="multipart/form-data">
->>>>>>> 9369702 (cleaned up modules)
                     <div class="input-group">
                         <label for="username">Username</label>
                         <input required type="text" id="username" name="display_name" required placeholder="johndoe123">
@@ -67,7 +62,7 @@
                         </div>
                         <div id="image_info"></div>
                     </div>
-                    <button class="primary" type="submit">Register</button>
+                    <button data-loading-disable data-loading-aria-busy data-loading-delay="100" class="primary loading__on_submit" type="submit">Register</button>
                 </form>
                 <small>
                     Already have an account? <a style="font-size: inherit;" class="link" href="/auth/login">Login</a>
@@ -81,10 +76,12 @@
                 alert(detail.xhr.responseText || "An error occurred");
             });
 
-            attach_uploaded_image_to_container(
-                document.getElementById("display_image"),
-                document.getElementById("image_info")
-            );
+            if (attach_uploaded_image_to_container) {
+                attach_uploaded_image_to_container(
+                    document.getElementById("display_image"),
+                    document.getElementById("image_info")
+                );
+            }
         </script>
     </body>
 </html>

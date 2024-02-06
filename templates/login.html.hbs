@@ -6,32 +6,20 @@
         <title>Chat Server w/ Rocket | Login</title>
         <link rel="preload" href="/assets/globals.css" as="style">
         <link rel="preload" href="/assets/htmx.min.js" as="script">
+        <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
         <link rel="stylesheet" href="/assets/globals.css">
         <link rel="stylesheet" href="/assets/sign_in.css">
+        <link rel="stylesheet" href="/assets/loading.css">
         <script src="/assets/htmx.min.js"></script>
-<<<<<<< HEAD
-        <script>
-            document.addEventListener("htmx:responseError", (ev) => {
-                const { detail } = ev;
-
-                alert(detail.xhr.responseText || "An error occurred");
-            });
-        </script>
-=======
         <script src="/assets/htmx-loading.min.js"></script>
         <script src="/assets/universal.js"></script>
->>>>>>> 9369702 (cleaned up modules)
     </head>
-    <body hx-boost="true">
+    <body hx-ext="loading-states">
         <main class="container min-h-screen sign-in-main">
             <div class="card sign-in-card">
                 <h1>Chat server</h1>
                 <p>Welcome back!</p>
-<<<<<<< HEAD
-                <form hx-swap="none" hx-post="/session/login">
-=======
                 <form hx-swap="none" hx-post="/auth/login" method="post" action="/auth/login">
->>>>>>> 9369702 (cleaned up modules)
                     <div class="input-group">
                         <label for="username">Username</label>
                         <input required type="text" id="username" name="display_name" required>
@@ -40,15 +28,13 @@
                         <label for="password">Password</label>
                         <input required type="password" id="password" name="password" required>
                     </div>
-                    <button class="primary" type="submit">Login</button>
+                    <button data-loading-disable data-loading-aria-busy data-loading-delay="100" class="primary loading__on_submit" type="submit">Login</button>
                 </form>
                 <small>
                     Don't have an account? <a style="font-size: inherit" class="link" href="/auth/register">Register</a>
                 </small>
             </div>
         </main>
-<<<<<<< HEAD
-=======
         <script>
             document.addEventListener("htmx:responseError", (ev) => {
                 const { detail } = ev;
@@ -58,6 +44,5 @@
                 alert(detail.xhr.responseText || "An error occurred");
             });
         </script>
->>>>>>> 9369702 (cleaned up modules)
     </body>
 </html>
