@@ -1,7 +1,7 @@
 use rocket::{get, http::CookieJar, response::Redirect, FromForm};
 use rocket_dyn_templates::{context, Template};
 
-use crate::{auth_uri as uri, cookies::settings::{self, Language, Theme}, user::user_struct::User};
+use crate::{auth_uri as uri, consts, cookies::settings::{self, Language, Theme}, user::user_struct::User};
 use super::index;
 
 #[derive(FromForm)]
@@ -26,6 +26,10 @@ pub fn page(cookies: &CookieJar<'_>) -> Template {
 
     Template::render(
         "login",
-        context! { theme: preferred_theme, lang: language }
+        context! {
+            theme: preferred_theme,
+            lang: language,
+            metadata: consts::METADATA
+        }
     )
 }

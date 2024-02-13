@@ -1,12 +1,15 @@
 #[macro_use] extern crate rocket;
 
-use chat_server::{catchers, db, pages::{auth, homepage}};
+use chat_server::{catchers, db, pages::{auth, chats, homepage}};
 use rocket::fs::{FileServer, relative};
-use rocket_dyn_templates::Template;
 use rocket_csrf_token::{CsrfConfig, Fairing};
+use rocket_dyn_templates::{handlebars::handlebars_helper, Template};
+
+handlebars_helper!(eq_str: |first_arg: String, second_arg: String| first_arg == second_arg);
+handlebars_helper!(eq_num: |first_arg: isize, second_arg: isize| first_arg == second_arg);
 
 #[launch]
-fn rocket() -> _ {
+fn rocket() -> _  {
     dotenv::dotenv().ok();
 
     rocket::build()
@@ -22,7 +25,26 @@ fn rocket() -> _ {
             auth::api::register::register_user,
             auth::api::logout::logout_user,
         ])
-        .attach(Template::fairing())
+        .mount("/chats", routes! [
+            chats::api::chats_of_user::chats_of_user,
+            chats::index::page,
+            chats::api::chats_of_user::error_if_logged_out,
+            chats::index::rederirect_if_logged_out
+        ])
+        .attach(Template::custom(|engines| {
+            engines
+                .handlebars
+                .register_helper("eq_str", Box::new(eq_str));
+
+            engines
+                .handlebars
+                .register_helper("eq_num", Box::new(eq_num));
+
+            engines
+                .handlebars
+                .register_partial("header", r#""#)
+                .unwrap();
+        }))
         .attach(Fairing::new(CsrfConfig::default()))
         .attach(db::stage())
         .register("/", catchers![catchers::internal_error, catchers::not_found, catchers::unauthorized])

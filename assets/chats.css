@@ -1,0 +1,15 @@
+.chats__main {
+    display: flex;
+}
+
+.chats__users {
+}
+
+@media screen and (min-width: 1024px) {
+    .chats__users {
+        width: 25%;
+    }
+    #chat_container {
+        width: 75%;
+    }
+}

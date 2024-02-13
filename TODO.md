@@ -6,3 +6,4 @@
 - Friends mechanism
 - Update metadata, add bio
 - Ability to send images in chats
+- Make metadata, urls in hrefs, etc., constant to only have one place to change and not go to different templates.

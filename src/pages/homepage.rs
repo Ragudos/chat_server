@@ -1,7 +1,7 @@
 use rocket::{get, http::CookieJar};
 use rocket_dyn_templates::{context, Template};
 
-use crate::{cookies::{self, settings::{Language, Theme}}, user::user_struct::User, utils::get_placeholder_display_image};
+use crate::{consts, cookies::{self, settings::{Language, Theme}}, user::user_struct::User, utils::get_placeholder_display_image};
 
 #[get("/")]
 pub fn page(
@@ -15,12 +15,21 @@ pub fn page(
         &cookies::settings::get_default_language(cookies)
     );
 
-    let placeholder_display_image = get_placeholder_display_image(&user);
-
-    println!("User: {:?}", user);
+    let placeholder_display_image: Option<String> = match user {
+        Some(ref user) => {
+            Some(get_placeholder_display_image(user.display_image.as_ref(), &user.gender))
+        },
+        None => None
+    };
 
     Template::render(
         "index",
-        context! { lang: language, theme: preferred_theme, user: user, placeholder_display_image }
+        context! {
+            lang: language,
+            theme: preferred_theme,
+            user,
+            placeholder_display_image,
+            metadata: consts::METADATA
+        }
     )
 }

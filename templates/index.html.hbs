@@ -14,23 +14,46 @@
     </head>
     <body hx-ext="loading-states">
         <header>
-            <h1>Chat Server w/ Rocket</h1>
-            <nav>
-                {{#if user}}
-                    <form hx-delete="/auth/logout" action="/auth/logout">
-                        <button
-                            type="submit"
-                            data-loading-disable
-                            data-loading-aria-busy
-                            data-loading-delay="400"
-                        >
-                            Logout
+            <div class="container">
+                <a href="/" title="{{metadata.title}} Home">
+                    {{metadata.title}}
+                </a>
+                <div class="header__search-container">
+                    <input type="search" placeholder="Search" />
+                    <button type="button" id="mobile-open-search">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
+                            <path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="header__user">
+                    {{#if user}}
+                        <button aria-controls="user-dropdown" type="button" id="user-dropdown-control" aria-expanded="false">
+                            <img
+                                src="{{#if user.displayImage}}{{user.displayImage}}{{else}}{{placeholder_display_image}}{{/if}}"
+                                alt="{{user.displayName}}'s Profile picture"
+                                width="28"
+                                height="28"
+                                loading="eager"
+                            />
                         </button>
-                    </form>
-                {{else}}
-                    <a href="/auth/login">Login</a>
-                {{/if}}
-            </nav>
+                        <div class="dropdown" id="user-dropdown">
+                            <div>
+                                <ul>
+                                    <li>
+                                        <a href="/profile?user_id={{user.id}}" title="Profile">Profile</a>
+                                    </li>
+                                    <li>
+                                        <button type="button" hx-delete="/auth/logout" title="Logout">Logout</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    {{else}}
+                        <a href="/auth/login" class="primary" title="Sign in">Sign in</a>
+                    {{/if}}
+                </div>
+            </div>
         </header>
     </body>
 </html>

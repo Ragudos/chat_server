@@ -2,7 +2,7 @@ use bcrypt;
 use rocket::{http::{CookieJar, Status}, response::status};
 use rocket_db_pools::Connection;
 
-use crate::{db::Db, errors::error::{Error, ErrorReason}, user::user_struct::{Gender, User}, utils};
+use crate::{auth_uri, db::Db, errors::error::{Error, ErrorReason}, user::user_struct::{Gender, User}, utils};
 
 pub async fn create_user(
     db: &mut Connection<Db>,
@@ -26,7 +26,7 @@ pub async fn create_user(
                         Ok(stringified_user) => {
                             cookies.add_private(rocket::http::Cookie::new("user_info", stringified_user));
 
-                            return Ok(utils::custom_redirect::Redirect::to("/"));
+                            return Ok(utils::custom_redirect::Redirect::to(auth_uri!(super::index::page)));
                         }
                         Err(err) => {
                             println!("Error: {:?}", err);
