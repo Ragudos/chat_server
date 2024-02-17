@@ -9,44 +9,13 @@
         <link rel="preload" href="/assets/htmx.min.js" as="script">
         <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
         <link rel="stylesheet" href="/assets/globals.css">
+        <link rel="stylesheet" href="/assets/header.css">
+        <link rel="stylesheet" href="/assets/dropdown.css">
         <script src="/assets/htmx.min.js"></script>
         <script src="/assets/htmx-loading.min.js"></script>
         <script src="/assets/universal.js"></script>
     </head>
     <body hx-ext="loading-states">
-        <header>
-            <div class="container">
-                <a href="/" title="{{metadata.title}} Home">
-                    {{metadata.title}}
-                </a>
-                <div class="header__user">
-                    {{#if user}}
-                        <button aria-controls="user-dropdown" type="button" id="user-dropdown-control" aria-expanded="false">
-                            <img
-                                src="{{#if (eq_str user.displayImage "")}}{{placeholder_display_image}}{{else}}{{user.displayImage}}{{/if}}"
-                                alt="{{user.displayName}}'s Profile picture"
-                                width="28"
-                                height="28"
-                                loading="eager"
-                            />
-                        </button>
-                        <div class="dropdown" id="user-dropdown">
-                            <div>
-                                <ul>
-                                    <li>
-                                        <a href="/profile?user_id={{user.id}}" title="Profile">Profile</a>
-                                    </li>
-                                    <li>
-                                        <button type="button" hx-delete="/auth/logout" title="Logout">Logout</button>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    {{else}}
-                        <a href="/auth/login" class="primary" title="Sign in">Sign in</a>
-                    {{/if}}
-                </div>
-            </div>
-        </header>
+        {{>header}}
     </body>
 </html>

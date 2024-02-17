@@ -134,6 +134,13 @@ body {
     color: hsl(var(--foreground));
 }
 
+ul,
+ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 input[type=submit],
 button {
     background-color: transparent;
@@ -179,7 +186,8 @@ input[type=submit] {
     transition: background-color 0.2s ease;
     will-change: background-color;
 
-    font-weight: 600;    
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 a.primary,
@@ -210,10 +218,17 @@ input[type=submit].destructive {
     --_foreground: var(--destructive-foreground);
 }
 
+a.ghost,
+button.ghost,
+input[type=submit].ghost {
+    background-color: transparent;
+    --_foreground: var(--primary);
+}
+
 a.icon,
 button.icon,
 input[type=submit].icon {
-    padding: 0.25rem;
+    padding: 0.175rem;
     min-width: 2rem;
     min-height: 2rem;
 }
@@ -230,6 +245,12 @@ a.link:hover,
 button.link:hover,
 input[type=submit].link:hover {
     opacity: 0.8;
+}
+
+a.ghost:hover,
+button.ghost:hover,
+input[type=submit].ghost:hover {
+    background-color: hsl(var(--accent) / var(--_bg-opacity, 0.175));
 }
 
 a:hover,
@@ -383,6 +404,10 @@ form button[type=submit] {
     justify-content: center;
 }
 
+input {
+    width: 100%;
+}
+
 [data-loading], [hidden] {
     display: none;
 }
@@ -393,9 +418,35 @@ form button[type=submit] {
     --_bg-opacity: 0.5 !important;
 }
 
+img {
+    max-width: 100%;
+    vertical-align: middle;
+    shape-margin: 2rem;
+}
+
+.profile {
+    border-radius: 50%;
+}
+
+.spinner {
+    border: 0.25rem solid hsl(var(--foreground) / 0.25);
+    border-top: 0.25rem solid hsl(var(--foreground));
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    animation: spin 1s linear infinite;
+}
+
+.spinner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);
     }
 }
-

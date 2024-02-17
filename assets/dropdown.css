@@ -1,0 +1,29 @@
+.dropdown {
+    position: absolute;
+    width: max-content;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 0fr;
+
+    right: 0;
+    top: 100%;
+    box-shadow: 0 6px 32px hsl(var(--foreground) / 0.25);
+    border-radius: var(--radius);
+
+    transition: grid-template-rows 0.3s ease;
+}
+
+.dropdown > div {
+    min-height: 0;
+}
+
+.dropdown[data-active=true] {
+    grid-template-rows: 1fr;
+}
+
+.dropdown > div > * {
+    padding: 0.5rem;
+
+    background-color: hsl(var(--accent) / var(--_bg-opacity, 0.675));
+    backdrop-filter: blur(0.25rem);
+}

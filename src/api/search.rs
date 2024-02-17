@@ -42,9 +42,10 @@ pub async fn search(
                             <img
                                 src=\"{}\"
                                 alt=\"{}'s Profile Picture\"
-                                width=\"40\"
-                                height=\"40\"
+                                width=\"32\"
+                                height=\"32\"
                                 loading=\"lazy\"
+                                class=\"profile\"
                             />
                             {}
                         </button>
