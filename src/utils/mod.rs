@@ -11,7 +11,7 @@ pub fn get_placeholder_display_image(
         Some(display_image ) => {
             if display_image.is_empty() {
                 match gender {
-                    Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
+                    Gender::Male => PLACEHOLDER_IMAGES.first().unwrap().to_string(),
                     Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
                     Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string()
                 }
@@ -21,7 +21,7 @@ pub fn get_placeholder_display_image(
         },
         None => {
             match gender {
-                Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
+                Gender::Male => PLACEHOLDER_IMAGES.first().unwrap().to_string(),
                 Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
                 Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string()
             }

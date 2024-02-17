@@ -21,3 +21,4 @@ cloud-storage = "0.11.1"
 random-string = "1.1.0"
 rocket_csrf_token = "0.3.5"
 time = { version = "0.3.34", features = ["serde"] }
+rocket_ws = "0.1.0"

@@ -5,3 +5,7 @@ const PLACEHOLDER_IMAGES = {
         other: "https://storage.cloud.google.com/chat_server_local_development/placeholders/display_images/other.png"
     }
 };
+
+function clear_list_of_search_results() {
+    document.getElementById("list-of-search-results").innerHTML = "";
+}

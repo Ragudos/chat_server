@@ -1,18 +1,39 @@
 use rocket_db_pools::Connection;
 use rocket_dyn_templates::{context, Template};
 
-use rocket::{get, http::CookieJar, response::{content::RawHtml, status}};
+use rocket::{get, http::{CookieJar, Status}, response::{content::RawHtml, status}};
 
 use crate::{auth_uri, chats::chat_struct::Chat, consts::{self, TemplateOrHtml}, cookies::settings::{self, Language, Theme}, db::Db, pages::auth::login, user::user_struct::User, utils};
 
-#[get("/?<receiver_id>&<is_htmx>")]
+#[get("/?<sender_id>&<receiver_id>&<is_htmx>")]
 pub async fn page(
     mut db: Connection<Db>,
     user: User,
     cookies: &CookieJar<'_>,
+    sender_id: Option<i32>,
     receiver_id: Option<i32>,
     is_htmx: Option<bool>
 ) -> Result<TemplateOrHtml, status::Custom<String>> {
+    let sender_id_mut: Option<i32>;
+
+    match sender_id {
+        Some(sender_id) => {
+            if sender_id != user.id && receiver_id != Some(user.id){
+                return Err(status::Custom(
+                    Status::Unauthorized,
+                    "You are not authorized to view this chat.".to_string()
+                ));
+            }
+            
+            sender_id_mut = Some(sender_id);
+        }
+        None => {
+            sender_id_mut = Some(user.id);
+        }
+    }
+
+    let sender_id_mut = sender_id_mut.unwrap();
+
     match is_htmx {
         Some(true) => {
             if receiver_id.is_none() {
@@ -21,13 +42,24 @@ pub async fn page(
                 ));  
             }
 
-            let user_chats = Chat::get_messages(&mut db, &user.id, &receiver_id.unwrap()).await;
+            let user_chats = Chat::get_messages(&mut db, &sender_id_mut, &receiver_id.unwrap()).await;
 
             match user_chats {
-                Ok(user_chats) =>{
+                Ok(user_chats) => {
+                    let receiver_name = if user_chats.receiver_id == user.id {
+                        &user_chats.sender_name
+                    } else {
+                        &user_chats.receiver_name
+                    };
+                    let receiver_avatar = if user_chats.receiver_id == user.id {
+                        &user_chats.sender_avatar
+                    } else {
+                        &user_chats.receiver_avatar
+                    };
+
                     let upper_html = format!(
                         "
-                        <div class=\"chats__container\">
+                        <div class=\"chats__container\" hx-swap=\"beforeend\" hx-target=\"#chat_info_container\" sse-swap=\"message\" sse-connect=\"/events/chats?{}\">
                             <nav class=\"chats__header\">
                                 <div>
                                     <img
@@ -39,23 +71,27 @@ pub async fn page(
                                     />
                                     <span>{}</span>
                                 </div>
-                            <div class=\"chats__content\">
-                                <ul id=\"chat_info_container\" hx-swap-oob=\"beforeend\">
+                            </nav>
+                            <ul id=\"chat_info_container\">
                         ",
-                        user_chats.receiver_avatar,
-                        user_chats.receiver_name,
-                        user_chats.receiver_name
+                        user_chats.id,
+                        receiver_avatar,
+                        receiver_name,
+                        receiver_name,
                     );
                     let mut messages_html = String::new();
 
                     for chat in user_chats.messages {
-                        let display_image = match chat.is_receiver_message {
-                            true => &user_chats.receiver_avatar,
-                            false => &user_chats.sender_avatar
+                        let is_receiver = chat.is_receiver_message;
+                        let display_image = if !is_receiver {
+                            &user_chats.receiver_avatar
+                        } else {
+                            &user_chats.sender_avatar
                         };
-                        let display_name = match chat.is_receiver_message {
-                            true => &user_chats.receiver_name,
-                            false => &user_chats.sender_name
+                        let display_name = if !is_receiver {
+                            &user_chats.receiver_name
+                        } else {
+                            &user_chats.sender_name
                         };
 
                         messages_html.push_str(
@@ -77,7 +113,7 @@ pub async fn page(
                                     </div>
                                 </li>
                                 ",
-                                chat.is_receiver_message,
+                                is_receiver,
                                 display_image,
                                 display_name,
                                 display_name,
@@ -87,18 +123,19 @@ pub async fn page(
                     }
 
                     let end_html = format!(
-                        "
-                            </ul>
-                        </div>
+                        "   </ul>
                         <form
                             id=\"chats__form\"
-                            ws-send
+                            hx-post=\"/chats/send\"
                             hx-trigger=\"submit\"
+                            hx-swap=\"none\"
                         >
                             <input name=\"receiver_id\" value=\"{}\" hidden>
                             <input name=\"sender_id\" value=\"{}\" hidden>
                             <input name=\"message\" placeholder=\"Type a message...\" required>
+                            <button type=\"submit\" title=\"Send Message\">Send</button>
                         </form>
+                        </div>
                         ",
                         user_chats.receiver_id,
                         user_chats.sender_id
@@ -109,9 +146,9 @@ pub async fn page(
                 Err(err) => {
                     println!("Error: {:?}", err);
 
-                    return Ok(TemplateOrHtml::Html(
+                    Ok(TemplateOrHtml::Html(
                         RawHtml(format!("<div><p>{:?}</p></div>", err))
-                    ));
+                    ))
                 }
             }
         },
@@ -122,7 +159,7 @@ pub async fn page(
             let language = Language::as_str(
                 &settings::get_default_language(cookies)
             );
-            let user_chats = Chat::get_user_chats(&mut db, &user.id, &String::new()).await.ok();
+            let user_chats = Chat::get_user_chats(&mut db, &sender_id_mut, &String::new()).await.ok();
             let placeholder_display_image = utils::get_placeholder_display_image(user.display_image.as_ref(), &user.gender);
 
             if receiver_id.is_none() {
@@ -141,7 +178,7 @@ pub async fn page(
                 ));
             }
 
-            let current_chat = Chat::get_messages(&mut db, &user.id, &receiver_id.unwrap()).await;
+            let current_chat = Chat::get_messages(&mut db, &sender_id_mut, &receiver_id.unwrap()).await;
             
             match current_chat {
                 Ok(current_chat) => {
@@ -162,7 +199,7 @@ pub async fn page(
                 Err(err) => {
                     println!("Error: {:?}", err);
 
-                    return Ok(TemplateOrHtml::Template(
+                    Ok(TemplateOrHtml::Template(
                         Template::render(
                             "chats",
                             context! {
@@ -176,7 +213,7 @@ pub async fn page(
                                 placeholder_display_image
                             }
                         ) 
-                    ));
+                    ))
                 }
             }
         }

@@ -23,16 +23,37 @@ pub async fn chats_of_user(
 
     match user_chats {
         Ok(user_chats) => {
-            if user_chats.len() == 0 {
+            if user_chats.is_empty() {
                 return Ok(RawHtml("<li><p>No chats found</p></li>".to_string()));
             }
 
             let mut html = String::new();
 
             for chat in user_chats {
+                let receiver_name = if chat.sender_id == user_id {
+                    &chat.receiver_name
+                } else {
+                    &chat.sender_name
+                };
+                let receiver_avatar = if chat.sender_id == user_id {
+                    &chat.receiver_avatar
+                } else {
+                    &chat.sender_avatar
+                };
+                let receiver_id = if chat.sender_id == user_id {
+                    &chat.receiver_id
+                } else {
+                    &chat.sender_id
+                };
+                let sender_id = if chat.sender_id == user_id {
+                    &chat.receiver_id
+                } else {
+                    &chat.sender_id
+                };
+
                 html.push_str(&format!(
                     "
-                    <li>
+                    <li data-iscurrent=\"\">
                         <button
                             type=\"button\"
                             title=\"Chat with {}\"
@@ -40,23 +61,27 @@ pub async fn chats_of_user(
                             hx-trigger=\"click\"
                             hx-target=\"#chat_container\"
                         >
-                            <img
-                                src=\"{}\"
-                                alt=\"{}'s Profile Picture\"
-                                width=\"40\"
-                                height=\"40\"
-                                loading=\"lazy\"
-                            />
-                            {}
+                            <div>
+                                <img
+                                    src=\"{}\"
+                                    alt=\"{}'s Profile Picture\"
+                                    width=\"40\"
+                                    height=\"40\"
+                                    loading=\"lazy\"
+                                />
+                                <span>{}</span>
+                            </div>
+                            <p>{}</p>
                         </button>
                     </li>
                     ",
-                    chat.receiver_name,
-                    chat.sender_id,
-                    chat.receiver_id,
-                    chat.receiver_avatar,
-                    chat.receiver_name,
-                    chat.receiver_name
+                    receiver_name,
+                    sender_id,
+                    receiver_id,
+                    receiver_avatar,
+                    receiver_name,
+                    receiver_name,
+                    chat.message
                 ));
             }
 
@@ -65,7 +90,7 @@ pub async fn chats_of_user(
         Err(err) => {
             println!("Error: {:?}", err);
 
-            return Ok(
+            Ok(
                 RawHtml("<li><p>Something went wrong in fetching chats.</p></li>".to_string())
             )
         }

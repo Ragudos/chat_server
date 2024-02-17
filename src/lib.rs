@@ -7,3 +7,4 @@ pub mod pages;
 pub mod errors;
 pub mod catchers;
 pub mod chats;
+pub mod api;

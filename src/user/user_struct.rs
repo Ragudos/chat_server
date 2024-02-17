@@ -1,8 +1,9 @@
 use rocket::{http::Status, outcome::IntoOutcome, request::{self, FromRequest, Request}, serde::{Deserialize, Serialize}, time::OffsetDateTime};
 use serde_json;
 use rocket_db_pools::{sqlx, Connection};
+use sqlx::Acquire;
 
-use crate::db::Db;
+use crate::{db::Db, utils};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, sqlx::Type, Deserialize, Serialize)]
 #[sqlx(type_name = "user_status", rename_all = "lowercase")]
@@ -46,6 +47,13 @@ pub struct User {
     pub profile_pictures: Vec<String>
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct PartialUser {
+    pub id: i32,
+    pub display_name: String,
+    pub display_image: Option<String>,
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserCredentials {
     pub id: i32,
@@ -84,9 +92,9 @@ impl From<UserRole> for String {
     }
 }
 
-impl Into<Gender> for String {
-    fn into(self) -> Gender {
-        match self.to_lowercase().as_str() {
+impl From<String> for Gender {
+    fn from(val: String) -> Self {
+        match val.to_lowercase().as_str() {
             "male" => Gender::Male,
             "female" => Gender::Female,
             "other" => Gender::Other,
@@ -95,9 +103,9 @@ impl Into<Gender> for String {
     }
 }
 
-impl Into<UserStatus> for String {
-    fn into(self) -> UserStatus {
-        match self.to_lowercase().as_str() {
+impl From<String> for UserStatus {
+    fn from(val: String) -> Self {
+        match val.to_lowercase().as_str() {
             "active" => UserStatus::Active,
             "suspended" => UserStatus::Suspended,
             "deleted" => UserStatus::Deleted,
@@ -106,9 +114,9 @@ impl Into<UserStatus> for String {
     }
 }
 
-impl Into<UserRole> for String {
-    fn into(self) -> UserRole {
-        match self.to_lowercase().as_str() {
+impl From<String> for UserRole {
+    fn from(val: String) -> Self {
+        match val.to_lowercase().as_str() {
             "admin" => UserRole::Admin,
             "user" => UserRole::User,
             _ => UserRole::User
@@ -125,8 +133,8 @@ impl<'r> FromRequest<'r> for User {
             .get_private("user_info")
             .and_then(|cookie| {
                 let user_info = cookie.value_trimmed();
-                let user  = serde_json::from_str(user_info).ok();
-                user
+                
+                serde_json::from_str(user_info).ok()
            }).or_forward(Status::Unauthorized)
     }
 }
@@ -158,8 +166,37 @@ impl User {
         }
     }
 
+    pub async fn get_display_name(db: &mut Connection<Db>, user_id: &i32) -> Option<String> {
+        sqlx::query!(
+            "SELECT display_name FROM users WHERE id = $1", user_id
+        )
+        .fetch_one(&mut ***db).await.ok().map(|user| user.display_name)
+    }
+
+    pub async fn get_by_id(db: &mut Connection<Db>, id: &i32) -> Option<User> {
+        sqlx::query_as!(
+            User,
+            r#"
+            SELECT
+            id,
+            display_name,
+            display_image,
+            role as "role: UserRole",
+            biography,
+            creation_date,
+            last_login_date,
+            status as "status: UserStatus",
+            gender as "gender: Gender",
+            profile_pictures
+            FROM users WHERE id = $1
+            "#, id
+        )
+        .fetch_one(&mut ***db).await.ok()
+    }
+
     pub async fn get_by_display_name(db: &mut Connection<Db>, display_name: &String) -> Option<User> {
-        let record = sqlx::query!(
+        sqlx::query_as!(
+            User,
             r#"
             SELECT
             id,
@@ -175,37 +212,21 @@ impl User {
             FROM users WHERE display_name = $1
             "#, display_name
         )
-        .fetch_one(&mut ***db).await.ok();
-    
-        match record {
-            Some(record) => {
-                Some(User::new(record.id, record.display_name, record.display_image, record.biography, record.creation_date, record.last_login_date, record.status, record.gender, record.role, record.profile_pictures))
-            },
-            None => None
-        }
+        .fetch_one(&mut ***db).await.ok()
     }
 
     /// @param user_id: The user's id
     pub async fn get_user_credentials(db: &mut Connection<Db>, user_id: &i32) -> Option<UserCredentials> {
-        let record = sqlx::query!(
+        sqlx::query_as!(
+            UserCredentials,
             "SELECT * FROM user_credentials WHERE user_id = $1", user_id
         )
-        .fetch_one(&mut ***db).await.ok();
-    
-        match record {
-            Some(record) => {
-                Some(UserCredentials {
-                    id: record.id,
-                    user_id: record.user_id,
-                    email: record.email,
-                    password_hash: record.password_hash
-                })
-            },
-            None => None
-        }
+        .fetch_one(&mut ***db).await.ok()
     }
 
     pub async fn create_user(db: &mut Connection<Db>, display_name: &String, display_image: &String, hashed_password: &String, gender: &Gender) -> Result<User, sqlx::Error> {
+        let mut transaction = db.begin().await?;
+        
         let user = sqlx::query_as!(
             User,
             r#"
@@ -227,25 +248,51 @@ impl User {
             display_image,
             gender as &Gender
         )
-        .fetch_one(&mut ***db).await;
+        .fetch_one(&mut *transaction).await?;
 
-        match user {
-            Ok(user) => {
-                let user = User::new(user.id, user.display_name, user.display_image, user.biography, user.creation_date, user.last_login_date, user.status, user.gender, user.role, user.profile_pictures);
+        sqlx::query!(
+            "INSERT INTO user_credentials (user_id, password_hash) VALUES ($1, $2) RETURNING *", user.id, hashed_password
+        ).fetch_one(&mut *transaction).await?;
 
-                let user_credentials = sqlx::query!(
-                    "INSERT INTO user_credentials (user_id, password_hash) VALUES ($1, $2) RETURNING *", user.id, hashed_password
-                ).fetch_one(&mut ***db).await;
+        transaction.commit().await?;
 
-                match user_credentials {
-                    Ok(_) => Ok(user),
-                    Err(err) => Err(err)
-                }
-            }
-            Err(err) => {
-                return Err(err);
-            }
+        Ok(user)
+    }
+
+    pub async fn search_for_users_with_display_name(
+        db: &mut Connection<Db>,
+        display_name_of_current_user: &String,
+        search: &String
+    ) -> Result<Vec<PartialUser>, sqlx::Error> {
+        let users = sqlx::query!(
+            r#"
+            SELECT
+            id,
+            display_name,
+            display_image,
+            gender as "gender: Gender"
+            FROM users
+            WHERE display_name != $2
+            AND similarity(display_name, $1) > 0.2
+            ORDER BY similarity(display_name, $1) DESC;
+            "#,
+            search,
+            display_name_of_current_user
+        ).fetch_all(&mut ***db).await?;
+
+        let mut users_vec = Vec::new();
+
+        for user in users {
+            let display_image = Some(utils::get_placeholder_display_image(user.display_image.as_ref(), &user.gender));
+
+            users_vec.push(PartialUser {
+                id: user.id,
+                display_name: user.display_name,
+                display_image
+            });
         }
+
+        Ok(users_vec)
     }
 }
 

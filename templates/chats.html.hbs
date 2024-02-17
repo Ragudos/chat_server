@@ -10,24 +10,25 @@
         <link rel="preload" href="/assets/htmx-loading.min.js" as="script">
         <link rel="stylesheet" href="/assets/globals.css">
         <link rel="stylesheet" href="/assets/chats.css">
-        <script src="/assets/htmx.min.js"></script>
-        <script src="/assets/htmx-loading.min.js"></script>
-        <script src="/assets/universal.js"></script>
-        <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+        <script src="/assets/htmx.min.js" defer></script>
+        <script src="/assets/htmx-loading.min.js" defer></script>
+        <script src="/assets/universal.js" defer></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/sse.js" defer></script>
     </head>
-    <body hx-ext="loading-states, ws">
+    <body hx-ext="loading-states, sse">
         <header>
             <div class="container">
                 <a href="/" title="{{metadata.title}} Home">
                     {{metadata.title}}
                 </a>
                 <div class="header__search-container">
-                    <input type="search" placeholder="Search" />
+                    <input hx-target="#list-of-search-results" hx-post="/search" hx-trigger="input changed delay:500ms, search" type="search" placeholder="Search" name="search" />
                     <button type="button" id="mobile-open-search">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4">
                             <path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd" />
                         </svg>
                     </button>
+                    <ul id="list-of-search-results"></ul>
                 </div>
                 <div class="header__user">
                     {{#if user}}
@@ -77,22 +78,25 @@
                 <ul id="user_chats">
                     {{#if chats}}
                         {{#each chats}}
-                            <li data-iscurrent="{{#if (eq_num this.id receiver_id)}}true{{else}}false{{/if}}">
+                            <li>
                                 <button
                                     type="button"
-                                    title="Chat with {{this.receiverName}}"
-                                    hx-get="/chats?sender_id={{this.senderId}}&receiver_id={{this.receiverId}}&is_htmx=true"
+                                    title="Chat with {{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}"
+                                    hx-get="/chats?sender_id={{#if (eq_num this.senderId ../user.id)}}{{this.senderId}}{{else}}{{this.receiverId}}{{/if}}&receiver_id={{#if (eq_num this.senderId ../user.id)}}{{this.receiverId}}{{else}}{{this.senderId}}{{/if}}&is_htmx=true"
                                     hx-trigger="click"
                                     hx-target="#chat_container"
                                 >
-                                    <img
-                                        src="{{this.receiverAvatar}}"
-                                        alt="{{this.receiverName}}'s Profile picture"
-                                        width="40"
-                                        height="40"
-                                        loading="lazy"
-                                    />
-                                    {{this.receiverName}}
+                                    <div>
+                                        <img
+                                            src="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverAvatar}}{{else}}{{this.senderAvatar}}{{/if}}"
+                                            alt="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}'s Profile picture"
+                                            width="40"
+                                            height="40"
+                                            loading="lazy"
+                                        />
+                                        <span>{{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}</span>
+                                    </div>
+                                    <p>{{this.message}}</p>
                                 </button>
                             </li>
                         {{/each}}
@@ -111,7 +115,7 @@
                     </div>
                 {{else}}
                     {{#if current_chat}}
-                    <div class="chats__container" ws-connect="/chats/ws/{{current_chat.id}}">
+                    <div class="chats__container" sse-connect="/events/chats?sender_id={{user.id}}&receiver_id={{current_chat.receiverId}}">
                         <nav class="chats__header">
                             <div>
                                 <img
@@ -124,35 +128,35 @@
                                 <span>{{current_chat.receiverName}}</span>
                             </div>
                         </nav>
-                        <div class="chats__content">
-                            <ul id="chat_info_container" hx-swap-oob="beforeend">
-                                {{#each current_chat.messages}}
-                                    <li data-isreceiver="{{this.isReceiverMessage}}">
-                                        <div class="chats__message">
-                                            <div>
-                                                <img
-                                                    src="{{#if this.isReceiverMessage}}{{current_chat.receiverAvatar}}{{else}}{{currentChat.senderAvatar}}{{/if}}"
-                                                    alt="{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{currentChat.senderName}}{{/if}}'s Profile picture"
-                                                    width="28"
-                                                    height="28"
-                                                    loading="lazy"
-                                                />
-                                                <small>{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{currentChat.senderName}}{{/if}}</small>
-                                            </div>
-                                            <p>{{this.message}}</p>
+                        <ul id="chat_info_container" hx-swap-oob="beforeend" sse-swap="message">
+                            {{#each current_chat.messages}}
+                                <li data-isreceiver="{{this.isReceiverMessage}}">
+                                    <div class="chats__message">
+                                        <div>
+                                            <img
+                                                src="{{#if this.isReceiverMessage}}{{current_chat.receiverAvatar}}{{else}}{{current_chat.senderAvatar}}{{/if}}"
+                                                alt="{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}'s Profile picture"
+                                                width="28"
+                                                height="28"
+                                                loading="lazy"
+                                            />
+                                            <small>{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}</small>
                                         </div>
-                                    </li>
-                                {{/each}}
-                            </ul>
-                        </div>
+                                        <p>{{this.message}}</p>
+                                    </div>
+                                </li>
+                            {{/each}}
+                        </ul>
                         <form
                             id="chats__form"
-                            ws-send
+                            hx-post="/chats/send"
+                            hx-swap="none"
                             hx-trigger="submit"
                         >
                             <input name="receiver_id" value="{{current_chat.receiverId}}" hidden>
                             <input name="sender_id" value="{{current_chat.senderId}}" hidden>
                             <input name="message" type="text" placeholder="Type a message..." required>
+                            <button type="submit" title="Send Message">Send</button>
                         </form>
                     </div>
                     {{else}}

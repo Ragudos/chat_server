@@ -15,12 +15,7 @@ pub fn page(
         &cookies::settings::get_default_language(cookies)
     );
 
-    let placeholder_display_image: Option<String> = match user {
-        Some(ref user) => {
-            Some(get_placeholder_display_image(user.display_image.as_ref(), &user.gender))
-        },
-        None => None
-    };
+    let placeholder_display_image: Option<String> = user.as_ref().map(|user| get_placeholder_display_image(user.display_image.as_ref(), &user.gender));
 
     Template::render(
         "index",

@@ -21,7 +21,7 @@ pub async fn login_user(
 
             match user_credentials {
                 Some(user_credentials) => {
-                    let is_same_password = bcrypt::verify(login_info.password, &user_credentials.password_hash.as_str());
+                    let is_same_password = bcrypt::verify(login_info.password, user_credentials.password_hash.as_str());
 
                     match is_same_password  {
                         Ok(true) => {
@@ -35,77 +35,77 @@ pub async fn login_user(
                                         Ok(stringified_user) => {
                                             cookies.add_private(Cookie::new("user_info", stringified_user));
 
-                                            return Ok(utils::custom_redirect::Redirect::to(auth_uri!(index::page)));
+                                            Ok(utils::custom_redirect::Redirect::to(auth_uri!(index::page)))
                                         }
                                         Err(err) => {
                                             println!("Error: {:?}", err);
 
-                                            return Err(status::Custom(
+                                            Err(status::Custom(
                                                 Status::InternalServerError,
                                                 Error::to_string(Error::new(
                                                     ErrorReason::SomethingWentWrong,
                                                     "Credentials are valid, but something went wrong in parsing user information.".to_string()
                                                 )),
-                                            ));
+                                            ))
                                         }
                                     }
                                 }
                                 Err(err) => {
                                     println!("Error: {:?}", err);
 
-                                    return Err(status::Custom(
+                                    Err(status::Custom(
                                         Status::InternalServerError,
                                         Error::to_string(Error::new(
                                             ErrorReason::SomethingWentWrong,
                                             "Credentials are valid, but something went wrong.".to_string()
                                         )),
-                                    ));
+                                    ))
                                 }
                             }
                         }
                         Ok(false) => {
-                            return Err(status::Custom(
+                            Err(status::Custom(
                                 Status::Unauthorized,
                                 Error::to_string(Error::new(
                                     ErrorReason::InvalidCredentials,
                                     "Invalid credentials".to_string()
                                 )),
-                            ));
+                            ))
                         }
                         Err(err) => {
                             println!("Error: {:?}", err);
 
-                            return Err(status::Custom(
+                            Err(status::Custom(
                                 Status::InternalServerError,
                                 Error::to_string(Error::new(
                                     ErrorReason::SomethingWentWrong,
                                     "Unable to check if credentials are valid.".to_string()
                                 )),
-                            ));
+                            ))
                         }
                     }
                 }
                 None => {
                     println!("User exists in \"users\" table but not in \"user_credentials\" table. Display name: {}", login_info.display_name);
 
-                    return Err(status::Custom(
+                    Err(status::Custom(
                         Status::InternalServerError,
                         Error::to_string(Error::new(
                             ErrorReason::SomethingWentWrong,
                             "Unable to check if credentials are valid.".to_string()
                         )),
-                    ));
+                    ))
                 }
             }
         }
         None => {
-            return Err(status::Custom(
+            Err(status::Custom(
                 Status::Unauthorized,
                 Error::to_string(Error::new(
                     ErrorReason::InvalidCredentials,
                     "Invalid credentials".to_string()
                 )),
-            ));
+            ))
         }
     }
 }

@@ -126,66 +126,66 @@ pub async fn register_user(
                                                                             }
 
                                                                             let random_name = random_string::generate(12,random_string::charsets::ALPHANUMERIC);
-                                                                            let name = format!("{:?}-chat_server-{:?}", random_name, file_name);
+                                                                            let name = format!("{}-chat_server-{}", random_name, file_name);
                                                                             let result = Client::default().object().create("chat_server_local_development", bytes, &name, mime_type).await;
 
                                                                             match result {
                                                                                 Ok(_obj) => {
                                                                                     let display_image = format!("https://storage.cloud.google.com/chat_server_local_development/{}", name);
                                                                                     
-                                                                                    return create_user(&mut db, cookies, display_name, &display_image, password, &gender.clone().into()).await;
+                                                                                    create_user(&mut db, cookies, display_name, &display_image, password, &gender.clone().into()).await
                                                                                 }
                                                                                 Err(err) => {
                                                                                     println!("Error: {:?}", err);
 
-                                                                                    return Err(status::Custom(
+                                                                                    Err(status::Custom(
                                                                                         Status::InternalServerError,
                                                                                         Error::to_string(Error::new(ErrorReason::SomethingWentWrong, "Failed to process image.".to_string()))
-                                                                                    ));
+                                                                                    ))
                                                                                 }
                                                                             }
                                                                         }
                                                                         Err(err) => {
                                                                             println!("Error: {:?}", err);
 
-                                                                            return Err(status::Custom(
+                                                                            Err(status::Custom(
                                                                                 Status::InternalServerError,
                                                                                 Error::to_string(Error::new(ErrorReason::SomethingWentWrong, "Failed to process image.".to_string()))
-                                                                            ));
+                                                                            ))
                                                                         }
                                                                     }
                                                                 }
                                                                 None => {
-                                                                    return Err(status::Custom(
+                                                                    Err(status::Custom(
                                                                         Status::NotAcceptable,
                                                                         Error::to_string(Error::new(ErrorReason::Invalid, "File name is required.".to_string()))
-                                                                    ));
+                                                                    ))
                                                                 }
                                                             }
                                                         }
                                                         _ => {
-                                                            return Err(status::Custom(
+                                                            Err(status::Custom(
                                                                 Status::NotAcceptable,
                                                                 Error::to_string(Error::new(ErrorReason::InvalidMimeType, "Only Jpeg, Webp, Png, and Avif images are allowed.".to_string()))
-                                                            ));
+                                                            ))
                                                         }
                                                     }
                                                 }
                                                 None => {
-                                                    return Err(status::Custom(
+                                                    Err(status::Custom(
                                                         Status::NotAcceptable,
                                                         Error::to_string(Error::new(ErrorReason::InvalidMimeType, "Only Jpeg, Webp, Png, and Avif images are allowed.".to_string()))
-                                                    ));
+                                                    ))
                                                 }
                                             }
                                         }
                                         None => {
-                                            return create_user(&mut db, cookies, display_name, &String::new(), password, &gender.clone().into()).await;
+                                            create_user(&mut db, cookies, display_name, &String::new(), password, &gender.clone().into()).await
                                         }
                                     }
                                 }
                                 None => {
-                                    return Err(status::Custom(
+                                    Err(status::Custom(
                                         Status::NotAcceptable,
                                         Error::to_string(Error::new(ErrorReason::Invalid, "Gender is required".to_string())))
                                     )
@@ -193,28 +193,28 @@ pub async fn register_user(
                             }
                         }
                         None => {
-                            return Err(status::Custom(
+                            Err(status::Custom(
                                 Status::NotAcceptable,
                                 Error::to_string(Error::new(ErrorReason::IncompleteData, "Password is required".to_string()))
-                            ));
+                            ))
                         }
                     }
                 }
                 None => {
-                    return Err(status::Custom(
+                    Err(status::Custom(
                         Status::NotAcceptable,
                         Error::to_string(Error::new(ErrorReason::IncompleteData, "Display name is required".to_string()))
-                    ));
+                    ))
                 }
             }
         }
         Err(err) => {
             println!("Error: {:?}", err);
 
-            return Err(status::Custom(
+            Err(status::Custom(
                 Status::InternalServerError,
                 Error::to_string(Error::new(ErrorReason::SomethingWentWrong, "Failed to process information".to_string()))
-            ));
+            ))
         }
     }
 }

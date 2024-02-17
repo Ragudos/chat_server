@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
 use time::OffsetDateTime;
 
-use crate::{consts::PLACEHOLDER_IMAGES, db::Db, user::user_struct::Gender, utils::get_placeholder_display_image};
+use crate::{db::Db, user::user_struct::Gender, utils::get_placeholder_display_image};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Chat {
@@ -30,6 +30,12 @@ pub struct ChatMessage {
     #[serde(rename = "isReceiverMessage")]
     pub is_receiver_message: bool,
     pub message: String,
+    #[serde(rename = "senderId")]
+    pub sender_id: i32,
+    #[serde(rename = "createdAt")]
+    pub created_at: OffsetDateTime,
+    #[serde(rename = "receiverId")]
+    pub receiver_id: i32,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -100,6 +106,27 @@ impl Chat {
         }
     }
 
+    pub async fn save_chat(
+        db: &mut Connection<Db>,
+        sender_id: &i32,
+        receiver_id: &i32,
+        receiver_display_name: &String,
+        message: &String,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            INSERT INTO user_chats (owner_id, receiver_id, message, receiver_display_name)
+            VALUES ($1, $2, $3, $4);
+            "#,
+            sender_id,
+            receiver_id,
+            message,
+            receiver_display_name
+        ).execute(&mut ***db).await?;
+
+        Ok(())
+    }
+
     pub async fn get_messages(
         db: &mut Connection<Db>,
         owner_id: &i32,
@@ -110,12 +137,12 @@ impl Chat {
             SELECT * FROM user_chats
             WHERE (owner_id = $1 AND receiver_id = $2)
             OR (owner_id = $2 AND receiver_id = $1)
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC
             "#,
             owner_id,
             receiver_id
         ).fetch_all(&mut ***db).await?;
-
+        
         let user_chat_owner = sqlx::query! (
             r#"
                 SELECT
@@ -147,19 +174,15 @@ impl Chat {
         for chat in user_chats {
             messages.push(ChatMessage {
                 is_receiver_message: chat.receiver_id == *receiver_id,
-                message: chat.message
+                message: chat.message,
+                sender_id: chat.owner_id,
+                created_at: chat.created_at,
+                receiver_id: chat.receiver_id,
             });
         }
 
-        let user_chat_user_display_image = match user_chat_owner.display_image {
-            Some(display_image) => display_image,
-            None => get_placeholder_display_image(None, &user_chat_owner.gender).to_string()
-        };
-
-        let user_chat_receiver_display_image = match user_chat_receiver.display_image {
-            Some(display_image) => display_image,
-            None => get_placeholder_display_image(None, &user_chat_receiver.gender).to_string()
-        };
+        let user_chat_user_display_image = get_placeholder_display_image(user_chat_owner.display_image.as_ref(), &user_chat_owner.gender);
+        let user_chat_receiver_display_image = get_placeholder_display_image(user_chat_receiver.display_image.as_ref(), &user_chat_receiver.gender);
 
         let messages_in_chat = MessagesInChat::new(
             format!("sender_id={}&receiver_id={}", owner_id, receiver_id),
@@ -180,7 +203,7 @@ impl Chat {
         user_id: &i32,
         search: &String,
     ) -> Result<Vec<Chat>, sqlx::Error> {
-        if search.len() == 0 {
+        if search.is_empty() {
             let chats = sqlx::query!(
                 r#"
                 SELECT *
@@ -188,8 +211,10 @@ impl Chat {
                 WHERE (owner_id, receiver_id, created_at) IN (
                     SELECT owner_id, receiver_id, MAX(created_at) 
                     FROM user_chats
-                    WHERE owner_id = $1
-                    GROUP BY owner_id, receiver_id
+                    WHERE owner_id = $1 OR receiver_id = $1
+                    GROUP BY owner_id, receiver_id, created_at
+                    ORDER BY created_at DESC
+                    LIMIT 1
                 );
                 "#,
                 user_id,
@@ -224,27 +249,8 @@ impl Chat {
                     chat.receiver_id
                 ).fetch_one(&mut ***db).await?;
 
-                let user_chat_owner_display_image = match user_chat_owner.display_image {
-                    Some(display_image) => display_image,
-                    None => {
-                        match user_chat_owner.gender {
-                            Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
-                            Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
-                            Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string(),
-                        }
-                    }
-                };
-
-                let user_chat_receiver_display_image = match user_chat_receiver.display_image {
-                    Some(display_image) => display_image,
-                    None => {
-                        match user_chat_receiver.gender {
-                            Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
-                            Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
-                            Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string(),
-                        }
-                    }
-                };
+                let user_chat_owner_display_image = get_placeholder_display_image(user_chat_owner.display_image.as_ref(), &user_chat_owner.gender);
+                let user_chat_receiver_display_image = get_placeholder_display_image(user_chat_receiver.display_image.as_ref(), &user_chat_receiver.gender);
 
                 user_chats.push(Chat::new(
                     chat.id,
@@ -268,9 +274,11 @@ impl Chat {
                 WHERE (owner_id, receiver_id, created_at) IN (
                     SELECT owner_id, receiver_id, MAX(created_at) 
                     FROM user_chats
-                    WHERE owner_id = $1
-                    GROUP BY owner_id, receiver_id
-                ) AND similarity(receiver_display_name, $2) > 0.6
+                    WHERE owner_id = $1 OR receiver_id = $1
+                    GROUP BY owner_id, receiver_id, created_at
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ) AND similarity(receiver_display_name, $2) > 0.1
                 ORDER BY similarity(receiver_display_name, $2) DESC;
                 "#,
                 user_id,
@@ -306,27 +314,9 @@ impl Chat {
                     chat.receiver_id
                 ).fetch_one(&mut ***db).await?;
 
-                let user_chat_owner_display_image = match user_chat_owner.display_image {
-                    Some(display_image) => display_image,
-                    None => {
-                        match user_chat_owner.gender {
-                            Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
-                            Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
-                            Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string(),
-                        }
-                    }
-                };
+                let user_chat_owner_display_image = get_placeholder_display_image(user_chat_owner.display_image.as_ref(), &user_chat_owner.gender);
 
-                let user_chat_receiver_display_image = match user_chat_receiver.display_image {
-                    Some(display_image) => display_image,
-                    None => {
-                        match user_chat_receiver.gender {
-                            Gender::Female => PLACEHOLDER_IMAGES.get(1).unwrap().to_string(),
-                            Gender::Male => PLACEHOLDER_IMAGES.get(0).unwrap().to_string(),
-                            Gender::Other => PLACEHOLDER_IMAGES.get(2).unwrap().to_string(),
-                        }
-                    }
-                };
+                let user_chat_receiver_display_image = get_placeholder_display_image(user_chat_receiver.display_image.as_ref(), &user_chat_receiver.gender);
 
                 user_chats.push(Chat::new(
                     chat.id,

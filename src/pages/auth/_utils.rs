@@ -26,44 +26,44 @@ pub async fn create_user(
                         Ok(stringified_user) => {
                             cookies.add_private(rocket::http::Cookie::new("user_info", stringified_user));
 
-                            return Ok(utils::custom_redirect::Redirect::to(auth_uri!(super::index::page)));
+                            Ok(utils::custom_redirect::Redirect::to(auth_uri!(super::index::page)))
                         }
                         Err(err) => {
                             println!("Error: {:?}", err);
 
-                            return Err(status::Custom(
+                            Err(status::Custom(
                                 Status::InternalServerError,
                                 Error::to_string(Error::new(
                                     ErrorReason::SomethingWentWrong,
                                     "Failed to register".to_string()
                                 )),
-                            ));
+                            ))
                         }
                     }
                 }
                 Err(err) => {
                     println!("Error: {:?}", err);
 
-                    return Err(status::Custom(
+                    Err(status::Custom(
                         Status::InternalServerError,
                         Error::to_string(Error::new(
                             ErrorReason::SomethingWentWrong,
                             "Failed to register".to_string()
                         )),
-                    ));
+                    ))
                 }
             }
         }
         Err(err) => {
             println!("Error: {:?}", err);
 
-            return Err(status::Custom(
+            Err(status::Custom(
                 Status::InternalServerError,
                 Error::to_string(Error::new(
                     ErrorReason::SomethingWentWrong,
                     "Failed to process information".to_string()
                 )),
-            ));
+            ))
         }
     }
 }
