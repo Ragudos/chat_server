@@ -1,11 +1,116 @@
 .chats__main {
     display: flex;
+
+    border-top: 2px solid hsl(var(--accent));
 }
 
 .chats__users {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-right: 2px solid hsl(var(--accent));
 }
 
-@media screen and (min-width: 1024px) {
+.chats__users,
+.chats__container {
+    padding-block: 1rem;
+}
+
+#user_chats {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#user_chats > li,
+#user_chats > li > button {
+    width: 100%;
+}
+
+#user_chats > li > button {
+    justify-content: flex-start;
+    gap: 0.5rem;
+    text-align: start;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0;
+}
+
+#user_chats > li > button > div > p {
+    font-weight: 500;
+    font-size: 0.875em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#chat_info_container {
+    overflow-y: auto;
+    min-height: 20rem;
+}
+
+.chats__message > div {
+    display: flex;
+    gap: 0.25rem;
+    align-items: flex-end;
+}
+
+.chats__message {
+    display: flex;
+    flex-direction: column;
+}
+
+#chat_info_container li {
+    margin: 0.25rem 0.5rem;
+}
+
+#chat_info_container li[data-isreceiver=false] .chats__message {
+    align-items: flex-end;
+}
+
+#chat_info_container li[data-isreceiver=false] .chats__message > div {
+    justify-content: flex-end;
+}
+
+#chat_info_container li .chats__message p {
+    background-color: hsl(var(--foreground) / var(--_bg-opacity, 1));
+    color: hsl(var(--background));
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius);
+    font-size: 0.75em;;
+}
+
+#chat_info_container li .chats__message time {
+    font-size: 0.675em;
+    font-weight: 400;
+    color: hsl(var(--foreground) / 0.5);
+}
+
+#chat_info_container img {
+    margin-bottom: 0.25rem;
+}
+
+.chats__container nav {
+    border-bottom: 1px solid hsl(var(--accent));
+}
+
+.chats__container form {
+    border-top: 1px solid hsl(var(--accent));
+}
+
+.chats__container {
+    display: flex;
+    flex-direction: column;
+    height: min(70rem, 90dvh);
+}
+
+.chats__header > div {
+    padding: 0.5rem;
+}
+
+@media screen and (min-width: 768px) {
+    #user_chats {
+        flex-direction: column;
+        align-items: flex-start;
+    }
     .chats__users {
         width: 25%;
     }

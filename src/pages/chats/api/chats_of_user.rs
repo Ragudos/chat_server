@@ -46,9 +46,9 @@ pub async fn chats_of_user(
                     &chat.sender_id
                 };
                 let sender_id = if chat.sender_id == user_id {
-                    &chat.receiver_id
-                } else {
                     &chat.sender_id
+                } else {
+                    &chat.receiver_id
                 };
 
                 html.push_str(&format!(
@@ -60,19 +60,23 @@ pub async fn chats_of_user(
                             hx-get=\"/chats?sender_id={}&receiver_id={}\"
                             hx-trigger=\"click\"
                             hx-target=\"#chat_container\"
+                            hx-sync=\"button[hx-target='#chat_container']:replace\"
+                            class=\"ghost\"
                         >
+                            <img
+                                src=\"{}\"
+                                alt=\"{}'s Profile Picture\"
+                                width=\"32\"
+                                height=\"32\"
+                                loading=\"lazy\"
+                                class=\"profile\"
+                            />
                             <div>
-                                <img
-                                    src=\"{}\"
-                                    alt=\"{}'s Profile Picture\"
-                                    width=\"40\"
-                                    height=\"40\"
-                                    loading=\"lazy\"
-                                />
                                 <span>{}</span>
+                                <p>{}</p>
                             </div>
-                            <p>{}</p>
                         </button>
+                        <hr>
                     </li>
                     ",
                     receiver_name,

@@ -28,9 +28,13 @@ function clear_list_of_search_results() {
             if (target.getAttribute("data-active") === "true") {
                 target.setAttribute("data-active", "false");
                 trigger.setAttribute("aria-expanded", "false");
+                target.querySelectorAll("a").forEach((link) => link.setAttribute("tabindex", "-1"));
+                target.querySelectorAll("button").forEach((button) => button.setAttribute("tabindex", "-1"));
             } else {
                 target.setAttribute("data-active", "true");
                 trigger.setAttribute("aria-expanded", "true");
+                target.querySelectorAll("a").forEach((link) => link.setAttribute("tabindex", "0"));
+                target.querySelectorAll("button").forEach((button) => button.setAttribute("tabindex", "0"));
             }
         });
 
@@ -47,6 +51,8 @@ function clear_list_of_search_results() {
             if (target_dropdown.getAttribute("data-active") === "true") {
                 target_dropdown.setAttribute("data-active", "false");
                 trigger.setAttribute("aria-expanded", "false");
+                target_dropdown.querySelectorAll("a").forEach((link) => link.setAttribute("tabindex", "-1"));
+                target_dropdown.querySelectorAll("button").forEach((link) => link.setAttribute("tabindex", "-1"));
             }
         });
     });

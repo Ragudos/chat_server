@@ -53,28 +53,28 @@ header > div {
     top: 150%;
     left: 0;
     right: 0;
-    background-color: hsl(var(--secondary) / var(--_bg-opacity, 0.675));
-    box-shadow: 0 0 0.5rem 0.25rem hsl(var(--secondary) / var(--_shadow-opacity, 0.25));
-    backdrop-filter: blur(0.25rem);
     z-index: 100;
 }
 
-#list-of-search-results {
+#list-of-search-results > * {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     max-height: 50dvh;
+    overflow-x: hidden;
     overflow-y: auto;
 }
 
-#list-of-search-results > li > * {
+#list-of-search-results > * > li > * {
     width: 100%;
     background-color: transparent;
     gap: 1rem;
     justify-content: flex-start;
     padding: 0.5rem;
+    background-color: hsl(var(--secondary) / var(--_bg-opacity, 0.675));
+    backdrop-filter: blur(0.25rem);
 }
 
-#list-of-search-results > li > button:hover {
+#list-of-search-results > * > li > button:hover {
     background-color: hsl(var(--secondary) / var(--_bg-opacity, 1));
 }

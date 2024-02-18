@@ -1,7 +1,7 @@
 use rocket_db_pools::Connection;
 use serde::{Deserialize, Serialize};
 use sqlx::Acquire;
-use time::OffsetDateTime;
+use time::{Date, OffsetDateTime};
 
 use crate::{db::Db, user::user_struct::Gender, utils::get_placeholder_display_image};
 
@@ -33,7 +33,7 @@ pub struct ChatMessage {
     #[serde(rename = "senderId")]
     pub sender_id: i32,
     #[serde(rename = "createdAt")]
-    pub created_at: OffsetDateTime,
+    pub created_at: String,
     #[serde(rename = "receiverId")]
     pub receiver_id: i32,
 }
@@ -112,19 +112,20 @@ impl Chat {
         receiver_id: &i32,
         receiver_display_name: &String,
         message: &String,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
+    ) -> Result<OffsetDateTime, sqlx::Error> {
+        let record = sqlx::query!(
             r#"
             INSERT INTO user_chats (owner_id, receiver_id, message, receiver_display_name)
-            VALUES ($1, $2, $3, $4);
+            VALUES ($1, $2, $3, $4)
+            RETURNING created_at;
             "#,
             sender_id,
             receiver_id,
             message,
             receiver_display_name
-        ).execute(&mut ***db).await?;
+        ).fetch_one(&mut ***db).await?;
 
-        Ok(())
+        Ok(record.created_at)
     }
 
     pub async fn get_messages(
@@ -172,11 +173,13 @@ impl Chat {
         let mut messages = Vec::new();
 
         for chat in user_chats {
+            let date = chat.created_at.date();
+
             messages.push(ChatMessage {
-                is_receiver_message: chat.receiver_id == *receiver_id,
+                is_receiver_message: chat.receiver_id != *receiver_id,
                 message: chat.message,
                 sender_id: chat.owner_id,
-                created_at: chat.created_at,
+                created_at: format!("{}-{}-{} at {}:{}:{}", date.year(), date.month(), date.day(), chat.created_at.hour(), chat.created_at.minute(), chat.created_at.second()),
                 receiver_id: chat.receiver_id,
             });
         }
@@ -206,16 +209,26 @@ impl Chat {
         if search.is_empty() {
             let chats = sqlx::query!(
                 r#"
-                SELECT *
-                FROM user_chats
-                WHERE (owner_id, receiver_id, created_at) IN (
-                    SELECT owner_id, receiver_id, MAX(created_at) 
+                WITH LatestChats AS (
+                    SELECT
+                    id,
+                    message,
+                    receiver_id,
+                    owner_id,
+                    created_at,
+                    receiver_display_name,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY GREATEST(receiver_id, owner_id),
+                        LEAST(receiver_id, owner_id)
+                        ORDER BY created_at DESC
+                    ) AS rn
                     FROM user_chats
                     WHERE owner_id = $1 OR receiver_id = $1
-                    GROUP BY owner_id, receiver_id, created_at
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                );
+                )
+                SELECT *
+                FROM LatestChats
+                WHERE rn = 1
+                ORDER BY created_at DESC;
                 "#,
                 user_id,
             ).fetch_all(&mut ***db).await?;
@@ -269,16 +282,26 @@ impl Chat {
         } else {
             let chats = sqlx::query!(
                 r#"
-                SELECT *
-                FROM user_chats
-                WHERE (owner_id, receiver_id, created_at) IN (
-                    SELECT owner_id, receiver_id, MAX(created_at) 
+                WITH LatestChats AS (
+                    SELECT
+                    id,
+                    message,
+                    receiver_id,
+                    owner_id,
+                    created_at,
+                    receiver_display_name,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY GREATEST(receiver_id, owner_id),
+                        LEAST(receiver_id, owner_id)
+                        ORDER BY created_at DESC
+                    ) AS rn
                     FROM user_chats
-                    WHERE owner_id = $1 OR receiver_id = $1
-                    GROUP BY owner_id, receiver_id, created_at
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                ) AND similarity(receiver_display_name, $2) > 0.1
+                    WHERE owner_id = $1 OR receiver_id = $1 AND
+                    similarity(receiver_display_name, $2) > 0.2
+                )
+                SELECT *
+                FROM LatestChats
+                WHERE rn = 1
                 ORDER BY similarity(receiver_display_name, $2) DESC;
                 "#,
                 user_id,
@@ -315,7 +338,6 @@ impl Chat {
                 ).fetch_one(&mut ***db).await?;
 
                 let user_chat_owner_display_image = get_placeholder_display_image(user_chat_owner.display_image.as_ref(), &user_chat_owner.gender);
-
                 let user_chat_receiver_display_image = get_placeholder_display_image(user_chat_receiver.display_image.as_ref(), &user_chat_receiver.gender);
 
                 user_chats.push(Chat::new(

@@ -21,10 +21,6 @@
         {{>header}}
         <main class="chats__main">
             <aside class="chats__users min-h-screen">
-                <nav>
-                    <!-- TODO: ADD Friends Feature -->
-                    <h1>Chats</h1>
-                </nav>
                 <div class="chats__input_with_icon">
                     <input
                         name="search"
@@ -33,6 +29,7 @@
                         hx-target="#user_chats"
                         hx-trigger="input changed delay:500ms, search"
                         placeholder="Search chats..."
+                        hx-syn="this:replace"
                     >
                 </div>
                 <ul id="user_chats">
@@ -45,19 +42,23 @@
                                     hx-get="/chats?sender_id={{#if (eq_num this.senderId ../user.id)}}{{this.senderId}}{{else}}{{this.receiverId}}{{/if}}&receiver_id={{#if (eq_num this.senderId ../user.id)}}{{this.receiverId}}{{else}}{{this.senderId}}{{/if}}&is_htmx=true"
                                     hx-trigger="click"
                                     hx-target="#chat_container"
+                                    hx-sync="button[hx-target='#chat_container']:replace"
+                                    class="ghost"
                                 >
+                                    <img
+                                        src="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverAvatar}}{{else}}{{this.senderAvatar}}{{/if}}"
+                                        alt="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}'s Profile picture"
+                                        width="32"
+                                        height="32"
+                                        loading="lazy"
+                                        class="profile"
+                                    />
                                     <div>
-                                        <img
-                                            src="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverAvatar}}{{else}}{{this.senderAvatar}}{{/if}}"
-                                            alt="{{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}'s Profile picture"
-                                            width="40"
-                                            height="40"
-                                            loading="lazy"
-                                        />
                                         <span>{{#if (eq_num this.senderId ../user.id)}}{{this.receiverName}}{{else}}{{this.senderName}}{{/if}}</span>
+                                        <p id="msg_{{#if (eq_num this.senderId ../user.id)}}{{this.senderId}}{{else}}{{this.receiverId}}{{/if}}{{#if (eq_num this.senderId ../user.id)}}{{this.receiverId}}{{else}}{{this.senderId}}{{/if}}">{{this.message}}</p>
                                     </div>
-                                    <p>{{this.message}}</p>
                                 </button>
+                                <hr /> 
                             </li>
                         {{/each}}
                     {{else}}
@@ -75,7 +76,7 @@
                     </div>
                 {{else}}
                     {{#if current_chat}}
-                    <div class="chats__container" sse-connect="/events/chats?sender_id={{user.id}}&receiver_id={{current_chat.receiverId}}">
+                    <div class="chats__container" hx-swap="beforeend scroll:bottom" sse-swap="message" sse-connect="/events/chats?sender_id={{user.id}}&receiver_id={{current_chat.receiverId}}">
                         <nav class="chats__header">
                             <div>
                                 <img
@@ -84,40 +85,52 @@
                                     width="40"
                                     height="40"
                                     loading="lazy"
+                                    class="profile"
                                 />
                                 <span>{{current_chat.receiverName}}</span>
                             </div>
                         </nav>
-                        <ul id="chat_info_container" hx-swap-oob="beforeend" sse-swap="message">
+                        <ul id="chat_info_container" >
                             {{#each current_chat.messages}}
                                 <li data-isreceiver="{{this.isReceiverMessage}}">
                                     <div class="chats__message">
                                         <div>
-                                            <img
-                                                src="{{#if this.isReceiverMessage}}{{current_chat.receiverAvatar}}{{else}}{{current_chat.senderAvatar}}{{/if}}"
-                                                alt="{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}'s Profile picture"
-                                                width="28"
-                                                height="28"
-                                                loading="lazy"
-                                            />
-                                            <small>{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}</small>
+                                            {{#if this.isReceiverMessage}}
+                                                <img
+                                                    src="{{#if this.isReceiverMessage}}{{current_chat.receiverAvatar}}{{else}}{{current_chat.senderAvatar}}{{/if}}"
+                                                    alt="{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}'s Profile picture"
+                                                    width="28"
+                                                    height="28"
+                                                    loading="lazy"
+                                                    class="profile"
+                                                />
+                                            {{/if}}
+                                            <div>
+                                                {{#if this.isReceiverMessage}}
+                                                    <small>{{#if this.isReceiverMessage}}{{current_chat.receiverName}}{{else}}{{current_chat.senderName}}{{/if}}</small>
+                                                {{/if}}
+                                                <p>{{this.message}}</p>
+                                            </div>
                                         </div>
-                                        <p>{{this.message}}</p>
+                                        <time>{{this.createdAt}}</time>
                                     </div>
                                 </li>
                             {{/each}}
                         </ul>
-                        <form
-                            id="chats__form"
-                            hx-post="/chats/send"
-                            hx-swap="none"
-                            hx-trigger="submit"
-                        >
-                            <input name="receiver_id" value="{{current_chat.receiverId}}" hidden>
-                            <input name="sender_id" value="{{current_chat.senderId}}" hidden>
-                            <input name="message" type="text" placeholder="Type a message..." required>
-                            <button type="submit" title="Send Message">Send</button>
-                        </form>
+                        <div>
+                            <form
+                                id="chats__form"
+                                hx-post="/chats/send"
+                                hx-trigger="submit"
+                                hx-swap="outerHTML"
+                                hx-target="#message_input"
+                            >
+                                <input name="receiver_id" value="{{current_chat.receiverId}}" hidden>
+                                <input name="sender_id" value="{{current_chat.senderId}}" hidden>
+                                <input id="message_input" name="message" type="text" placeholder="Type a message..." required>
+                                <button data-loading-disable data-loading-aria-busy data-loading-delay="100" class="primary loading__on_submit" type="submit" title="Send Message">Send</button>
+                            </form>
+                        </div>
                     </div>
                     {{else}}
                         <div>

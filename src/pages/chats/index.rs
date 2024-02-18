@@ -59,7 +59,7 @@ pub async fn page(
 
                     let upper_html = format!(
                         "
-                        <div class=\"chats__container\" hx-swap=\"beforeend\" hx-target=\"#chat_info_container\" sse-swap=\"message\" sse-connect=\"/events/chats?{}\">
+                        <div class=\"chats__container\" hx-swap=\"beforeend scroll:down\" hx-target=\"#chat_info_container\" sse-swap=\"message\" sse-connect=\"/events/chats?{}\">
                             <nav class=\"chats__header\">
                                 <div>
                                     <img
@@ -68,6 +68,7 @@ pub async fn page(
                                         width=\"40\"
                                         height=\"40\"
                                         loading=\"lazy\"
+                                        class=\"profile\"
                                     />
                                     <span>{}</span>
                                 </div>
@@ -83,58 +84,86 @@ pub async fn page(
 
                     for chat in user_chats.messages {
                         let is_receiver = chat.is_receiver_message;
-                        let display_image = if !is_receiver {
+                        let display_image = if is_receiver {
                             &user_chats.receiver_avatar
                         } else {
                             &user_chats.sender_avatar
                         };
-                        let display_name = if !is_receiver {
+                        let display_name = if is_receiver {
                             &user_chats.receiver_name
                         } else {
                             &user_chats.sender_name
                         };
 
-                        messages_html.push_str(
-                            format!(
-                                "
-                                <li data-isreceiver=\"{}\">
-                                    <div class=\"chats__message\">
-                                        <div>
-                                            <img
-                                                src=\"{}\"
-                                                alt=\"{}'s Profile picture\"
-                                                width=\"28\"
-                                                height=\"28\"
-                                                loading=\"lazy\"
-                                            />
-                                            <small>{}</small>
+                        if is_receiver {
+                            messages_html.push_str(
+                                format!(
+                                    "
+                                    <li data-isreceiver=\"{}\">
+                                        <div class=\"chats__message\">
+                                            <div>
+                                                <img
+                                                    src=\"{}\"
+                                                    alt=\"{}'s Profile picture\"
+                                                    width=\"28\"
+                                                    height=\"28\"
+                                                    loading=\"lazy\"
+                                                    class=\"profile\"
+                                                />
+                                                <div>
+                                                    <small>{}</small>
+                                                    <p>{}</p>
+                                                </div>
+                                            </div>
+                                            <time>{}</time>
                                         </div>
-                                        <p>{}</p>
-                                    </div>
-                                </li>
-                                ",
-                                is_receiver,
-                                display_image,
-                                display_name,
-                                display_name,
-                                chat.message
-                            ).as_str()
-                        );
+                                    </li>
+                                    ",
+                                    is_receiver,
+                                    display_image,
+                                    display_name,
+                                    display_name,
+                                    chat.message,
+                                    chat.created_at
+                                ).as_str()
+                            );
+                        } else {
+                            messages_html.push_str(
+                                format!(
+                                    "
+                                    <li data-isreceiver=\"{}\">
+                                        <div class=\"chats__message\">
+                                            <div>
+                                                <p>{}</p>
+                                            </div>
+                                            <time>{}</time>
+                                        </div>
+                                    </li>
+                                    ",
+                                    is_receiver,
+                                    chat.message,
+                                    chat.created_at
+                                ).as_str()
+                            );
+                        }
                     }
 
                     let end_html = format!(
                         "   </ul>
-                        <form
-                            id=\"chats__form\"
-                            hx-post=\"/chats/send\"
-                            hx-trigger=\"submit\"
-                            hx-swap=\"none\"
-                        >
-                            <input name=\"receiver_id\" value=\"{}\" hidden>
-                            <input name=\"sender_id\" value=\"{}\" hidden>
-                            <input name=\"message\" placeholder=\"Type a message...\" required>
-                            <button type=\"submit\" title=\"Send Message\">Send</button>
-                        </form>
+                        <div>
+                            <form
+                                id=\"chats__form\"
+                                hx-post=\"/chats/send\"
+                                hx-trigger=\"submit\"
+                                hx-swap=\"outerHTML\"
+                                hx-target=\"#message_input\"
+                            >
+                                <input name=\"receiver_id\" value=\"{}\" hidden>
+                                <input name=\"sender_id\" value=\"{}\" hidden>
+                                <input id=\"message_input\" name=\"message\" placeholder=\"Type a message...\" required>
+                                <button type=\"submit\" title=\"Send Message\">Send</button>
+                            </form>
+                        </div>
                         </div>
                         ",
                         user_chats.receiver_id,

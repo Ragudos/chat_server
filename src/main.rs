@@ -1,7 +1,7 @@
 #[macro_use] extern crate rocket;
 
 use chat_server::{api, catchers, chats::chat_struct::Chat, db::{self, Db}, pages::{auth, chats, homepage}, user::user_struct::User, utils::get_placeholder_display_image};
-use rocket::{form::Form, fs::FileServer, http::Status, response::{status, stream::{Event, EventStream}}, tokio::sync::broadcast::{channel, error::RecvError, Sender}, Shutdown, State};
+use rocket::{form::Form, fs::FileServer, http::Status, response::{content::RawHtml, status, stream::{Event, EventStream}}, tokio::sync::broadcast::{channel, error::RecvError, Sender}, Shutdown, State};
 use rocket_csrf_token::{CsrfConfig, Fairing};
 use rocket_db_pools::Connection;
 use rocket_dyn_templates::{handlebars::handlebars_helper, Template};
@@ -16,7 +16,8 @@ handlebars_helper!(eq_num: |first_arg: isize, second_arg: isize| first_arg == se
 struct ChatRoomMessage {
     sender_id: i32,
     receiver_id: i32,
-    message: String
+    message: String,
+    created_at: Option<String>,
 }
 
 #[get("/events/chats?<sender_id>&<receiver_id>")]
@@ -75,30 +76,64 @@ async fn chats_sse(
                 };
 
                 let is_receiver = msg.sender_id != user.id;
+                let mut html: String;
 
-                yield Event::data(
-                    format!(
+                if is_receiver {
+                    html = format!(
                         r#"<li data-isreceiver="{}">
                             <div class="chats__message">
                                 <div>
-                                    <img
-                                        src="{}"
-                                        alt="{}'s Profile picture"
-                                        width="28"
-                                        height="28"
-                                        loading="lazy"
-                                    />
-                                    <small>{}</small>
+                                <img
+                                    src="{}"
+                                    alt="{}'s Profile picture"
+                                    width="28"
+                                    height="28"
+                                    loading="lazy"
+                                    class="profile"
+                                />
+                                    <div>
+                                        <small>{}</small>
+                                        <p>{}</p>
+                                    </div>
                                 </div>
-                                <p>{}</p>
+                                <time>{}</time>
                             </div>
                         </li>"#,
                         is_receiver,
                         display_image,
                         name,
                         name,
-                        msg.message
-                    )
+                        msg.message,
+                        msg.created_at.unwrap()
+                    );
+                } else {
+                    html = format!(
+                        r#"<li data-isreceiver="{}">
+                            <div class="chats__message">
+                                <div>
+                                    <p>{}</p>
+                                </div>
+                                <time>{}</time>
+                            </div>
+                        </li>"#,
+                        is_receiver,
+                        msg.message,
+                        msg.created_at.unwrap()
+                    );
+                }
+
+                let id = format!("msg_{}{}", sender_id, receiver_id);
+
+                html.push_str(format!(
+                    "
+                        <p hx-swap-oob=\"true\" id=\"{}\">{}</p>
+                    ",
+                    id,
+                    msg.message
+                ).as_str());
+
+                yield Event::data(
+                    html
                 ).event("message")
             }
         }
@@ -111,7 +146,7 @@ async fn send_msg(
     data: Form<ChatRoomMessage>,
     user: User,
     queue: &State<Sender<ChatRoomMessage>>
-) -> Result<(), status::Custom<String>>{
+) -> Result<RawHtml<String>, status::Custom<String>>{
     let receiver_id = &data.receiver_id;
     let sender_id = &data.sender_id;
     let message = &data.message;
@@ -126,15 +161,24 @@ async fn send_msg(
         return Err(status::Custom(Status::NotFound, "User to chat with not found.".to_string()));
     }
 
-    let res = Chat::save_chat(&mut db, sender_id, receiver_id, &receiver_name.unwrap(), &message).await;
+    let res = Chat::save_chat(&mut db, sender_id, receiver_id, &receiver_name.unwrap(), message).await;
 
     if res.is_err() {
         return Err(status::Custom(Status::InternalServerError, "Something went wrong. Please try again.".to_string()));
     }
 
-    let _res = queue.send(data.into_inner());
+    let created_at = res.unwrap();
 
-    Ok(())
+    let _res = queue.send(ChatRoomMessage {
+        sender_id: *sender_id,
+        receiver_id: *receiver_id,
+        message: message.clone(),
+        created_at: Some(format!("{}-{}-{} at {}:{}:{}", created_at.year(), created_at.month(), created_at.day(), created_at.hour(), created_at.minute(), created_at.second()))
+    });
+
+    Ok(RawHtml(r#"
+        <input id="message_input" type="text" required name="message" placeholder="Type a message" />
+    "#.to_string()))
 }
 
 #[launch]
@@ -182,14 +226,14 @@ fn rocket() -> _  {
                                 {{metadata.title}}
                             </a>
                             <div class=\"header__search-container\">
-                                <input hx-target=\"#list-of-search-results\" hx-post=\"/search\" hx-trigger=\"input changed delay:500ms, search\" type=\"search\" placeholder=\"Search\" name=\"search\" />
+                                <input hx-sync=\"this:replace\" hx-target=\"#list-of-search-results\" hx-post=\"/search\" hx-trigger=\"input changed delay:500ms, search\" type=\"search\" placeholder=\"Search\" name=\"search\" />
                                 <button type=\"button\" id=\"mobile-open-search\">
                                     <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\" fill=\"currentColor\">
                                         <path fill-rule=\"evenodd\" d=\"M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z\" clip-rule=\"evenodd\" />
                                     </svg>
                                 </button>
                                 <div class=\"list-of-search-results-container\">
-                                    <ul id=\"list-of-search-results\"></ul>
+                                    <div id=\"list-of-search-results\"></div>
                                 </div>
                             </div>
                             <div class=\"header__user\">
@@ -208,10 +252,10 @@ fn rocket() -> _  {
                                         <div>
                                             <ul>
                                                 <li>
-                                                    <a href=\"/profile?user_id={{user.id}}\" title=\"Profile\"><small>Profile</small></a>
+                                                    <a tabindex=\"-1\" href=\"/profile?user_id={{user.id}}\" title=\"Profile\"><small>Profile</small></a>
                                                 </li>
                                                 <li>
-                                                    <button type=\"button\" hx-delete=\"/auth/logout\" title=\"Logout\"><small>Logout</small></button>
+                                                    <button tabindex=\"-1\" type=\"button\" hx-delete=\"/auth/logout\" title=\"Logout\"><small>Logout</small></button>
                                                 </li>
                                             </ul>
                                         </div>

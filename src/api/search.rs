@@ -23,10 +23,12 @@ pub async fn search(
     match users {
         Ok(users) => {
             if users.is_empty() {
-                return RawHtml("<li><p>No users found</p></li>".to_string());
+                return RawHtml("<ul><li><p>No users found</p></li></ul>".to_string());
             }
 
             let mut html = String::new();
+
+            html.push_str("<ul>");
 
             for user in users {
                 html.push_str(&format!(
@@ -59,9 +61,11 @@ pub async fn search(
                 ));
             }
 
+            html.push_str("</ul>");
+
             RawHtml(html)
         },
-        Err(_) => RawHtml("<li><p>No users found</p></li>".to_string())
+        Err(_) => RawHtml("<ul><li><p>No users found</p></li></ul>".to_string())
     
     }
 }

@@ -222,7 +222,7 @@ a.ghost,
 button.ghost,
 input[type=submit].ghost {
     background-color: transparent;
-    --_foreground: var(--primary);
+    --_foreground: var(--foreground);
 }
 
 a.icon,
@@ -416,6 +416,10 @@ input {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
     --_bg-opacity: 0.5 !important;
+}
+
+hr {
+    margin: 0.174rem;
 }
 
 img {
